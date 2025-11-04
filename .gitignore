@@ -1,0 +1,10 @@
+build/
+result
+result-*
+.direnv/
+.cache/
+compile_commands.json
+*.swp
+*.swo
+*~
+.DS_Store
