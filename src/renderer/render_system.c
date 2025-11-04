@@ -13,20 +13,21 @@
 static void
 shape_to_sdf_object (const shape_component_t *shape, sdf_object_t *sdf)
 {
-  sdf->position = (vec4_t){
-    shape->transform.position.x, shape->transform.position.y,
-    shape->transform.position.z,
-    shape->dimensions.x // radius/scale
-  };
-
-  sdf->rotation = shape->transform.rotation;
-  sdf->dimensions = (vec4_t){ shape->dimensions.x, shape->dimensions.y,
-                              shape->dimensions.z, 0 };
+  sdf->position = (vec4_t){ shape->transform.position.x,
+                            shape->transform.position.y,
+                            shape->transform.position.z,
+                            shape->dimensions.x }; // w = radius/scale
 
   sdf->color = shape->color;
-  sdf->type = shape->type;
-  sdf->material_id = 0;
-  sdf->smoothing = shape->smoothing;
+
+  sdf->dimensions
+      = (vec4_t){ shape->dimensions.x, shape->dimensions.y,
+                  shape->dimensions.z,
+                  (float)shape->type }; // w = type (stored as float)
+
+  sdf->params = (vec4_t){ shape->smoothing, // x = smoothing
+                          0.0f,             // y = material_id
+                          0.0f, 0.0f };     // z,w = reserved
 }
 
 result_t
@@ -182,13 +183,19 @@ render_system_collect_shapes (render_system_t *system, ecs_world_t *world)
       system->sdf_object_count++;
     }
 
-  // Upload to GPU (upload all including empty slots to initialize)
-  size_t upload_size
-      = sizeof (sdf_object_t)
-        * (system->sdf_object_count > 0 ? system->sdf_object_count : 1);
-  result_t result = gpu_buffer_upload (system->raymarcher.vk_context,
-                                       &system->raymarcher.sdf_objects_buffer,
-                                       system->sdf_objects, upload_size);
+  // Clear remaining slots to mark end of object list
+  for (size_t i = system->sdf_object_count; i < system->sdf_object_capacity;
+       i++)
+    {
+      memset (&system->sdf_objects[i], 0, sizeof (sdf_object_t));
+    }
+
+  // Upload entire buffer to GPU (including cleared slots for termination)
+  result_t result
+      = gpu_buffer_upload (system->raymarcher.vk_context,
+                           &system->raymarcher.sdf_objects_buffer,
+                           system->sdf_objects,
+                           sizeof (sdf_object_t) * system->sdf_object_capacity);
 
   return result;
 }

@@ -179,22 +179,13 @@ example_world_generator (ecs_world_t *world, void *user_data)
                            "Shape component not registered");
     }
 
-  // Big test sphere right in front of camera
-  entity_id_t test_sphere = ecs_entity_create (world);
-  shape_component_t test_shape = shape_sphere_create (
-      (vec3_t){ 0, 3, 0, 0 },
-      1.5f, (vec4_t){ 1.0f, 0.64f, 0.83f, 1.0f }
-  );
-  result_t result
-      = ecs_add_component (world, test_sphere, shape_id, &test_shape);
-  printf ("[World] Added test sphere: %s\n",
-          result.code == RESULT_OK ? "OK" : result.message);
+  result_t result;
 
   // Create ground plane
   entity_id_t ground = ecs_entity_create (world);
   shape_component_t ground_shape
       = shape_box_create ((vec3_t){ 0, -1, 0, 0 }, (vec3_t){ 20, 0.1f, 20, 0 },
-                          (vec4_t){ 0.3f, 0.5f, 0.3f, 1.0f });
+                          (vec4_t){ 0.5f, 0.5f, 0.5f, 1.0f });
   result = ecs_add_component (world, ground, shape_id, &ground_shape);
   printf ("[World] Added ground: %s\n",
           result.code == RESULT_OK ? "OK" : result.message);
@@ -219,7 +210,7 @@ example_world_generator (ecs_world_t *world, void *user_data)
               result.code == RESULT_OK ? "OK" : result.message);
     }
 
-  printf ("[World] Generated 7 entities\n");
+  printf ("[World] Generated 6 entities\n");
 
   return RESULT_SUCCESS;
 }
@@ -362,7 +353,7 @@ main (int argc, char **argv)
   (void)argc;
   (void)argv;
 
-  printf ("=== Hite Engine ===\n");
+  printf ("=== HitE ===\n");
   printf ("High-performance Vulkan raymarching engine\n\n");
 
   engine_state_t state;

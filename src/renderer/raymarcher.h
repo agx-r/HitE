@@ -29,16 +29,14 @@ typedef enum
 } sdf_type_t;
 
 // SDF object data (GPU-compatible)
+// Must be exactly 64 bytes for ALIGN_64 to work correctly
 typedef struct
 {
-  vec4_t position;   // w = radius/scale
-  vec4_t rotation;   // quaternion
-  vec4_t dimensions; // box dimensions, torus params, etc.
-  vec4_t color;
-  uint32_t type;
-  uint32_t material_id;
-  float smoothing;
-  float _padding;
+  vec4_t position;   // xyz = position, w = radius/scale for sphere
+  vec4_t color;      // rgba
+  vec4_t dimensions; // xyz = dimensions, w = type (as float, will cast to uint in shader)
+  vec4_t params;     // x = smoothing, y = material_id, z/w = reserved
+  // 64 bytes total (4 * vec4 = 4 * 16 = 64) - perfect alignment
 } ALIGN_64 sdf_object_t;
 
 // Raymarcher state
