@@ -2,8 +2,8 @@
 #define HITE_VULKAN_CORE_H
 
 #include "../core/types.h"
-#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
+#include <GLFW/glfw3.h>
 
 #define MAX_FRAMES_IN_FLIGHT 2
 

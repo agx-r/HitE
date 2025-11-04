@@ -2,7 +2,6 @@
 #define HITE_SWAPCHAIN_H
 
 #include "vulkan_core.h"
-#include <GLFW/glfw3.h>
 
 typedef struct
 {
