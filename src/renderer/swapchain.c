@@ -57,13 +57,27 @@ swapchain_create (vulkan_context_t *context, GLFWwindow *window,
                                         &format_count, formats);
 
   VkSurfaceFormatKHR surface_format = formats[0];
+  // Prefer UNORM format to avoid automatic color space conversion
   for (uint32_t i = 0; i < format_count; i++)
     {
-      if (formats[i].format == VK_FORMAT_B8G8R8A8_SRGB
+      if (formats[i].format == VK_FORMAT_B8G8R8A8_UNORM
           && formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
         {
           surface_format = formats[i];
           break;
+        }
+    }
+  // Fallback to SRGB if UNORM not available
+  if (surface_format.format != VK_FORMAT_B8G8R8A8_UNORM)
+    {
+      for (uint32_t i = 0; i < format_count; i++)
+        {
+          if (formats[i].format == VK_FORMAT_B8G8R8A8_SRGB
+              && formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            {
+              surface_format = formats[i];
+              break;
+            }
         }
     }
   free (formats);

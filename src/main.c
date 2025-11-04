@@ -183,7 +183,7 @@ example_world_generator (ecs_world_t *world, void *user_data)
   entity_id_t test_sphere = ecs_entity_create (world);
   shape_component_t test_shape = shape_sphere_create (
       (vec3_t){ 0, 3, 0, 0 },
-      1.5f, (vec4_t){ 1.0f, 0.0f, 0.0f, 1.0f }
+      1.5f, (vec4_t){ 1.0f, 0.64f, 0.83f, 1.0f }
   );
   result_t result
       = ecs_add_component (world, test_sphere, shape_id, &test_shape);

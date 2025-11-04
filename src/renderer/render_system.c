@@ -36,7 +36,7 @@ render_system_init (render_system_t *system, vulkan_context_t *vk_context,
   memset (system, 0, sizeof (render_system_t));
   system->window = window;
 
-  // Initialize raymarcher
+  // Init raymarcher
   result_t result
       = raymarcher_create (vk_context, width, height, &system->raymarcher);
   if (result.code != RESULT_OK)
@@ -51,7 +51,6 @@ render_system_init (render_system_t *system, vulkan_context_t *vk_context,
       return result;
     }
 
-  // Load shader (try multiple paths)
   // Get executable path for relative shader location
   char exe_path[1024];
   ssize_t len = readlink ("/proc/self/exe", exe_path, sizeof (exe_path) - 1);
@@ -159,15 +158,11 @@ render_system_collect_shapes (render_system_t *system, ecs_world_t *world)
   // Iterate through all shape components
   component_array_t *shape_array = &world->component_arrays[shape_id];
 
-  printf ("[Render] Collecting shapes: %zu total, checking...\n",
-          shape_array->count);
-
   for (size_t i = 0; i < shape_array->count && i < system->sdf_object_capacity;
        i++)
     {
       if (!shape_array->active[i])
         {
-          printf ("[Render] Shape %zu: inactive\n", i);
           continue;
         }
 
@@ -178,23 +173,14 @@ render_system_collect_shapes (render_system_t *system, ecs_world_t *world)
 
       if (!shape->visible)
         {
-          printf ("[Render] Shape %zu: not visible\n", i);
           continue;
         }
-
-      printf (
-          "[Render] Shape %zu: type=%d, pos=(%.1f,%.1f,%.1f), visible=%d\n", i,
-          shape->type, shape->transform.position.x,
-          shape->transform.position.y, shape->transform.position.z,
-          shape->visible);
 
       // Convert to GPU format
       shape_to_sdf_object (shape,
                            &system->sdf_objects[system->sdf_object_count]);
       system->sdf_object_count++;
     }
-
-  printf ("[Render] Uploading %zu shapes to GPU\n", system->sdf_object_count);
 
   // Upload to GPU (upload all including empty slots to initialize)
   size_t upload_size
