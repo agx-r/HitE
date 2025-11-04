@@ -839,20 +839,6 @@ Check shader compilation output:
 glslangValidator -V shader.comp -o shader.spv --target-env vulkan1.2
 ```
 
----
-
-## Building for Production
-
-```bash
-# Optimized build
-nix build --option optimization-level 3
-
-# Strip symbols
-strip result/bin/hite
-```
-
----
-
 # Q&A
 
 Q: When will X11 be supported?
