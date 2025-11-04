@@ -181,7 +181,7 @@ example_world_generator (ecs_world_t *world, void *user_data)
 
   result_t result;
 
-  // Create ground plane
+  // Ground plane
   entity_id_t ground = ecs_entity_create (world);
   shape_component_t ground_shape
       = shape_box_create ((vec3_t){ 0, -1, 0, 0 }, (vec3_t){ 20, 0.1f, 20, 0 },
@@ -190,27 +190,13 @@ example_world_generator (ecs_world_t *world, void *user_data)
   printf ("[World] Added ground: %s\n",
           result.code == RESULT_OK ? "OK" : result.message);
 
-  // Create some spheres
-  for (int i = 0; i < 5; i++)
-    {
-      entity_id_t sphere = ecs_entity_create (world);
-
-      float x = (float)(i - 2) * 2.0f;
-      float y = 2.0f;
-      float radius = 0.6f;
-
-      vec4_t color = { 0.2f + (float)i * 0.15f, 0.3f + (float)(4 - i) * 0.15f,
-                       0.7f, 1.0f };
-
-      shape_component_t sphere_shape
-          = shape_sphere_create ((vec3_t){ x, y, 0, 0 }, radius, color);
-
-      result = ecs_add_component (world, sphere, shape_id, &sphere_shape);
-      printf ("[World] Added sphere %d at (%.1f, %.1f, 0): %s\n", i, x, y,
-              result.code == RESULT_OK ? "OK" : result.message);
-    }
-
-  printf ("[World] Generated 6 entities\n");
+  // Tor
+  entity_id_t tor = ecs_entity_create(world);
+  shape_component_t shape_tor = shape_torus_create((vec3_t){ 0, 1, 0, 0 }, 1, 0.3,
+                                                       (vec4_t){ 0.65f, 0.65f, 0.87f, 1.0f });
+  result = ecs_add_component (world, tor, shape_id, &shape_tor);
+  printf ("[World] Added tor: %s\n",
+          result.code == RESULT_OK ? "OK" : result.message);
 
   return RESULT_SUCCESS;
 }
