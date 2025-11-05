@@ -52,11 +52,11 @@ pointer scheme_cdr_wrapper (scheme_state_t *state, pointer obj);
 pointer scheme_cadr_wrapper (scheme_state_t *state, pointer obj);
 int scheme_list_length_wrapper (scheme_state_t *state, pointer obj);
 pointer scheme_list_ref_wrapper (scheme_state_t *state, pointer obj,
-                                int index);
+                                 int index);
 
 // Find field in list like (field-name value...)
 pointer scheme_find_field (scheme_state_t *state, pointer list,
-                          const char *field_name);
+                           const char *field_name);
 
 // Helper parsers for common data types
 result_t scheme_parse_vec3 (scheme_state_t *state, pointer obj, vec3_t *out);

@@ -13,10 +13,10 @@
 static void
 shape_to_sdf_object (const shape_component_t *shape, sdf_object_t *sdf)
 {
-  sdf->position = (vec4_t){ shape->transform.position.x,
-                            shape->transform.position.y,
-                            shape->transform.position.z,
-                            shape->dimensions.x }; // w = radius/scale
+  sdf->position
+      = (vec4_t){ shape->transform.position.x, shape->transform.position.y,
+                  shape->transform.position.z,
+                  shape->dimensions.x }; // w = radius/scale
 
   sdf->color = shape->color;
 
@@ -191,11 +191,10 @@ render_system_collect_shapes (render_system_t *system, ecs_world_t *world)
     }
 
   // Upload entire buffer to GPU (including cleared slots for termination)
-  result_t result
-      = gpu_buffer_upload (system->raymarcher.vk_context,
-                           &system->raymarcher.sdf_objects_buffer,
-                           system->sdf_objects,
-                           sizeof (sdf_object_t) * system->sdf_object_capacity);
+  result_t result = gpu_buffer_upload (
+      system->raymarcher.vk_context, &system->raymarcher.sdf_objects_buffer,
+      system->sdf_objects,
+      sizeof (sdf_object_t) * system->sdf_object_capacity);
 
   return result;
 }

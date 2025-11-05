@@ -40,7 +40,8 @@ raymarcher_create (vulkan_context_t *context, uint32_t width, uint32_t height,
   raymarcher->height = height;
   raymarcher->max_objects = MAX_SDF_OBJECTS;
 
-  // Create output image in UNORM format (compute shaders work with linear colors)
+  // Create output image in UNORM format (compute shaders work with linear
+  // colors)
   result_t result = gpu_image_create (
       context, width, height, VK_FORMAT_R8G8B8A8_UNORM,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT

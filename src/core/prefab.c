@@ -1,4 +1,6 @@
 #include "prefab.h"
+#include "../components/developer_overlay_component.h"
+#include "../components/gui_component.h"
 #include "component_parsers.h"
 #include "scheme_parser.h"
 
@@ -79,7 +81,8 @@ prefab_add_component (prefab_t *prefab, const char *component_name,
 {
   if (!prefab || !component_name || !data)
     {
-      return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
+      return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
+                           "Invalid arguments");
     }
 
   if (prefab->component_count >= MAX_PREFAB_COMPONENTS)
@@ -87,8 +90,7 @@ prefab_add_component (prefab_t *prefab, const char *component_name,
       return RESULT_ERROR (RESULT_ERROR_ALLOCATION, "Max components reached");
     }
 
-  prefab_component_data_t *comp
-      = &prefab->components[prefab->component_count];
+  prefab_component_data_t *comp = &prefab->components[prefab->component_count];
   comp->component_name = strdup (component_name);
   comp->data_size = data_size;
   comp->data = malloc (data_size);
@@ -142,7 +144,8 @@ prefab_load (prefab_system_t *system, const char *filepath,
 {
   if (!system || !filepath)
     {
-      return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
+      return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
+                           "Invalid arguments");
     }
 
   if (!g_scheme_state)
@@ -153,7 +156,8 @@ prefab_load (prefab_system_t *system, const char *filepath,
 
   // Load and evaluate Scheme file
   pointer result;
-  result_t load_result = hite_scheme_load_file (g_scheme_state, filepath, &result);
+  result_t load_result
+      = hite_scheme_load_file (g_scheme_state, filepath, &result);
   if (load_result.code != RESULT_OK)
     return load_result;
 
@@ -226,7 +230,8 @@ prefab_load (prefab_system_t *system, const char *filepath,
               pointer value = scheme_cadr_wrapper (g_scheme_state, field);
               if (scheme_is_string_wrapper (g_scheme_state, value))
                 {
-                  const char *name = scheme_string_wrapper (g_scheme_state, value);
+                  const char *name
+                      = scheme_string_wrapper (g_scheme_state, value);
                   if (name)
                     prefab->name = strdup (name);
                 }
@@ -237,7 +242,8 @@ prefab_load (prefab_system_t *system, const char *filepath,
               pointer value = scheme_cadr_wrapper (g_scheme_state, field);
               if (scheme_is_string_wrapper (g_scheme_state, value))
                 {
-                  const char *desc = scheme_string_wrapper (g_scheme_state, value);
+                  const char *desc
+                      = scheme_string_wrapper (g_scheme_state, value);
                   if (desc)
                     prefab->description = strdup (desc);
                 }
@@ -246,10 +252,12 @@ prefab_load (prefab_system_t *system, const char *filepath,
           else if (strcmp (field_name, "component") == 0)
             {
               // Get component name
-              pointer comp_name_obj = scheme_cadr_wrapper (g_scheme_state, field);
+              pointer comp_name_obj
+                  = scheme_cadr_wrapper (g_scheme_state, field);
               if (!scheme_is_string_wrapper (g_scheme_state, comp_name_obj))
                 {
-                  printf ("[Prefab] Warning: Component name must be a string\n");
+                  printf (
+                      "[Prefab] Warning: Component name must be a string\n");
                   current = scheme_cdr_wrapper (g_scheme_state, current);
                   continue;
                 }
@@ -296,9 +304,8 @@ prefab_load (prefab_system_t *system, const char *filepath,
               else if (strcmp (comp_name, "camera_movement") == 0)
                 {
                   camera_movement_component_t movement_data;
-                  result_t res
-                      = parse_camera_movement_component (g_scheme_state, field,
-                                                         &movement_data);
+                  result_t res = parse_camera_movement_component (
+                      g_scheme_state, field, &movement_data);
                   if (res.code == RESULT_OK)
                     {
                       prefab_add_component (
@@ -317,9 +324,8 @@ prefab_load (prefab_system_t *system, const char *filepath,
               else if (strcmp (comp_name, "camera_rotation") == 0)
                 {
                   camera_rotation_component_t rotation_data;
-                  result_t res
-                      = parse_camera_rotation_component (g_scheme_state, field,
-                                                         &rotation_data);
+                  result_t res = parse_camera_rotation_component (
+                      g_scheme_state, field, &rotation_data);
                   if (res.code == RESULT_OK)
                     {
                       prefab_add_component (
@@ -332,6 +338,43 @@ prefab_load (prefab_system_t *system, const char *filepath,
                     {
                       printf (
                           "[Prefab]   Failed to parse camera_rotation: %s\n",
+                          res.message);
+                    }
+                }
+              else if (strcmp (comp_name, "gui") == 0)
+                {
+                  gui_component_t gui_data;
+                  result_t res
+                      = parse_gui_component (g_scheme_state, field, &gui_data);
+                  if (res.code == RESULT_OK)
+                    {
+                      prefab_add_component (prefab, "gui", &gui_data,
+                                            sizeof (gui_component_t));
+                      printf ("[Prefab]   GUI component parsed\n");
+                    }
+                  else
+                    {
+                      printf ("[Prefab]   Failed to parse gui: %s\n",
+                              res.message);
+                    }
+                }
+              else if (strcmp (comp_name, "developer_overlay") == 0)
+                {
+                  developer_overlay_component_t overlay_data;
+                  result_t res = parse_developer_overlay_component (
+                      g_scheme_state, field, &overlay_data);
+                  if (res.code == RESULT_OK)
+                    {
+                      prefab_add_component (
+                          prefab, "developer_overlay", &overlay_data,
+                          sizeof (developer_overlay_component_t));
+                      printf ("[Prefab]   Developer overlay component "
+                              "parsed\n");
+                    }
+                  else
+                    {
+                      printf (
+                          "[Prefab]   Failed to parse developer_overlay: %s\n",
                           res.message);
                     }
                 }
@@ -364,7 +407,8 @@ prefab_load_directory (prefab_system_t *system, const char *directory_path)
 {
   if (!system || !directory_path)
     {
-      return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
+      return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
+                           "Invalid arguments");
     }
 
   DIR *dir = opendir (directory_path);
@@ -382,7 +426,8 @@ prefab_load_directory (prefab_system_t *system, const char *directory_path)
   while ((entry = readdir (dir)) != NULL)
     {
       // Skip . and ..
-      if (strcmp (entry->d_name, ".") == 0 || strcmp (entry->d_name, "..") == 0)
+      if (strcmp (entry->d_name, ".") == 0
+          || strcmp (entry->d_name, "..") == 0)
         continue;
 
       // Check if file ends with .scm
@@ -441,14 +486,14 @@ prefab_instantiate (const prefab_t *prefab, ecs_world_t *world,
 {
   if (!prefab || !world)
     {
-      return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
+      return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
+                           "Invalid arguments");
     }
 
   entity_id_t entity = ecs_entity_create (world);
   if (entity == INVALID_ENTITY)
     {
-      return RESULT_ERROR (RESULT_ERROR_ALLOCATION,
-                           "Failed to create entity");
+      return RESULT_ERROR (RESULT_ERROR_ALLOCATION, "Failed to create entity");
     }
 
   // Add all components

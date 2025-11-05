@@ -29,7 +29,7 @@ camera_rotation_create_default (float yaw, float pitch)
 // Process mouse movement
 void
 camera_rotation_process_mouse (camera_rotation_component_t *rotation,
-                                double xpos, double ypos)
+                               double xpos, double ypos)
 {
   if (!rotation->enabled || !rotation->mouse_captured)
     return;
@@ -50,7 +50,7 @@ camera_rotation_process_mouse (camera_rotation_component_t *rotation,
   xoffset *= rotation->look_sensitivity;
   yoffset *= rotation->look_sensitivity;
 
-  rotation->yaw += xoffset;  // Inverted X rotation
+  rotation->yaw += xoffset; // Inverted X rotation
   rotation->pitch -= yoffset;
 
   // Constrain pitch
@@ -63,7 +63,7 @@ camera_rotation_process_mouse (camera_rotation_component_t *rotation,
 // Component lifecycle
 result_t
 camera_rotation_component_start (ecs_world_t *world, entity_id_t entity,
-                                  void *component_data)
+                                 void *component_data)
 {
   (void)world;
   (void)entity;
@@ -76,8 +76,8 @@ camera_rotation_component_start (ecs_world_t *world, entity_id_t entity,
 
 result_t
 camera_rotation_component_update (ecs_world_t *world, entity_id_t entity,
-                                   void *component_data,
-                                   const time_info_t *time)
+                                  void *component_data,
+                                  const time_info_t *time)
 {
   (void)time;
 

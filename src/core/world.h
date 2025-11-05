@@ -8,7 +8,7 @@
 typedef struct
 {
   const char *component_name;
-  void *override_data;      // Override data (NULL if not overriding)
+  void *override_data; // Override data (NULL if not overriding)
   size_t override_data_size;
 } component_override_t;
 
@@ -40,9 +40,9 @@ typedef struct
   struct
   {
     const char *component_name;
-    void *data;        // Parsed component data (for new components)
+    void *data; // Parsed component data (for new components)
     size_t data_size;
-    pointer sexp;      // Original S-expression (for partial overrides)
+    pointer sexp; // Original S-expression (for partial overrides)
   } *components;
   size_t component_count;
 } entity_template_t;

@@ -1,12 +1,12 @@
 #ifndef HITE_GLOBAL_H
 #define HITE_GLOBAL_H
 
+#include "../renderer/render_system.h"
+#include "../renderer/vulkan_core.h"
 #include "events.h"
 #include "resources.h"
 #include "types.h"
 #include "world.h"
-#include "../renderer/render_system.h"
-#include "../renderer/vulkan_core.h"
 
 #include <GLFW/glfw3.h>
 #include <stdbool.h>

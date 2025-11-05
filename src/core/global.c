@@ -1,13 +1,15 @@
 #include "global.h"
-#include "prefab.h"
-#include "world_loader.h"
-#include "component_parsers.h"
-#include "scheme_parser.h"
 #include "../components/camera_component.h"
 #include "../components/camera_movement_component.h"
 #include "../components/camera_rotation_component.h"
+#include "../components/developer_overlay_component.h"
+#include "../components/gui_component.h"
 #include "../components/physics_component.h"
 #include "../components/shape_component.h"
+#include "component_parsers.h"
+#include "prefab.h"
+#include "scheme_parser.h"
+#include "world_loader.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -99,7 +101,7 @@ glfw_mouse_callback (GLFWwindow *window, double xpos, double ypos)
     state->camera_pitch = -1.5f;
 
   render_system_rotate_camera (&state->render_system, state->camera_yaw,
-                                state->camera_pitch);
+                               state->camera_pitch);
 }
 
 // Process camera movement
@@ -222,8 +224,8 @@ engine_init (engine_state_t *state, const engine_config_t *config)
 
   // Initialize render system
   result = render_system_init (&state->render_system, &state->vk_context,
-                                state->window, state->window_width,
-                                state->window_height);
+                               state->window, state->window_width,
+                               state->window_height);
   if (result.code != RESULT_OK)
     return result;
 
@@ -261,7 +263,8 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
 {
   if (!state || !config)
     {
-      return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
+      return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
+                           "Invalid arguments");
     }
 
   // Create prefab system
@@ -296,6 +299,8 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
   camera_rotation_component_register (state->world_manager->active_world);
   shape_component_register (state->world_manager->active_world);
   physics_component_register (state->world_manager->active_world);
+  gui_component_register (state->world_manager->active_world);
+  developer_overlay_component_register (state->world_manager->active_world);
   printf ("[Engine] Components registered\n");
 
   // Load world definition from file
@@ -340,30 +345,34 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
     {
       printf ("[Engine] Instantiating %zu entity templates...\n",
               world_def.entity_template_count);
-      
+
       for (size_t i = 0; i < world_def.entity_template_count; i++)
         {
           const entity_template_t *tmpl = &world_def.entity_templates[i];
           entity_id_t entity = INVALID_ENTITY;
-          
+
           // If template references a prefab, instantiate it first
           if (tmpl->prefab_name)
             {
-              prefab_t *prefab = prefab_find (prefab_system, tmpl->prefab_name);
+              prefab_t *prefab
+                  = prefab_find (prefab_system, tmpl->prefab_name);
               if (prefab)
                 {
-                  result_t res = prefab_instantiate (prefab, state->world_manager->active_world, &entity);
+                  result_t res = prefab_instantiate (
+                      prefab, state->world_manager->active_world, &entity);
                   if (res.code != RESULT_OK)
                     {
-                      printf ("[Warning] Failed to instantiate prefab '%s': %s\n",
-                              tmpl->prefab_name, res.message);
+                      printf (
+                          "[Warning] Failed to instantiate prefab '%s': %s\n",
+                          tmpl->prefab_name, res.message);
                       continue;
                     }
                 }
               else
                 {
-                  printf ("[Warning] Prefab '%s' not found for entity template\n",
-                          tmpl->prefab_name);
+                  printf (
+                      "[Warning] Prefab '%s' not found for entity template\n",
+                      tmpl->prefab_name);
                   continue;
                 }
             }
@@ -377,39 +386,46 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
                   continue;
                 }
             }
-          
+
           // Add/override components from template
           for (size_t j = 0; j < tmpl->component_count; j++)
             {
               const char *comp_name = tmpl->components[j].component_name;
               const void *comp_data = tmpl->components[j].data;
-              
-              component_id_t comp_id = ecs_get_component_id (state->world_manager->active_world, comp_name);
+
+              component_id_t comp_id = ecs_get_component_id (
+                  state->world_manager->active_world, comp_name);
               if (comp_id == INVALID_ENTITY)
                 {
-                  printf ("[Warning] Component '%s' not registered\n", comp_name);
+                  printf ("[Warning] Component '%s' not registered\n",
+                          comp_name);
                   continue;
                 }
-              
+
               // Check if component already exists (from prefab)
-              void *existing = ecs_get_component (state->world_manager->active_world, entity, comp_id);
+              void *existing = ecs_get_component (
+                  state->world_manager->active_world, entity, comp_id);
               if (existing)
                 {
                   // Component exists from prefab - apply partial override
                   if (tmpl->components[j].sexp)
                     {
-                      // Partial override: apply only specified fields from S-expression
+                      // Partial override: apply only specified fields from
+                      // S-expression
                       scheme_state_t *scheme_state = hite_scheme_init ();
                       if (scheme_state)
                         {
-                          apply_component_override (scheme_state, comp_name, tmpl->components[j].sexp, existing);
+                          apply_component_override (scheme_state, comp_name,
+                                                    tmpl->components[j].sexp,
+                                                    existing);
                           hite_scheme_shutdown (scheme_state);
                         }
                     }
                   else
                     {
                       // Full override with parsed data
-                      memcpy (existing, comp_data, tmpl->components[j].data_size);
+                      memcpy (existing, comp_data,
+                              tmpl->components[j].data_size);
                     }
                 }
               else
@@ -417,11 +433,13 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
                   // Component doesn't exist - add new component
                   if (comp_data)
                     {
-                      ecs_add_component (state->world_manager->active_world, entity, comp_id, comp_data);
+                      ecs_add_component (state->world_manager->active_world,
+                                         entity, comp_id, comp_data);
                     }
                   else
                     {
-                      printf ("[Warning] No component data for '%s'\n", comp_name);
+                      printf ("[Warning] No component data for '%s'\n",
+                              comp_name);
                     }
                 }
             }

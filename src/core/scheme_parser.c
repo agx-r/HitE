@@ -1,6 +1,6 @@
 #include "scheme_parser.h"
-#include "../../external/tinyscheme/scheme.h"
 #include "../../external/tinyscheme/scheme-private.h"
+#include "../../external/tinyscheme/scheme.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,12 +23,12 @@ hite_scheme_init (void)
 
   scheme_set_input_port_file (state->sc, stdin);
   scheme_set_output_port_file (state->sc, stdout);
-  
+
   // Load init.scm for basic functionality
   // Note: TinyScheme needs init.scm for many built-in functions
   // For now, we'll skip it as we only need basic read/eval
   // If init.scm is needed, load it from a known path
-  
+
   printf ("[TinyScheme] Initialized (version 1.42)\n");
 
   return state;
@@ -75,7 +75,8 @@ hite_scheme_load_file (scheme_state_t *state, const char *filepath,
   if (!source)
     {
       fclose (file);
-      return RESULT_ERROR (RESULT_ERROR_ALLOCATION, "Failed to allocate memory");
+      return RESULT_ERROR (RESULT_ERROR_ALLOCATION,
+                           "Failed to allocate memory");
     }
 
   size_t bytes_read = fread (source, 1, size, file);
@@ -84,21 +85,22 @@ hite_scheme_load_file (scheme_state_t *state, const char *filepath,
 
   // Use scheme_load_string with a wrapper that quotes the expression
   // Build: (quote <content>)
-  char *wrapper = malloc (strlen(source) + 20);
+  char *wrapper = malloc (strlen (source) + 20);
   if (!wrapper)
     {
       free (source);
-      return RESULT_ERROR (RESULT_ERROR_ALLOCATION, "Failed to allocate memory");
+      return RESULT_ERROR (RESULT_ERROR_ALLOCATION,
+                           "Failed to allocate memory");
     }
-  
+
   sprintf (wrapper, "(quote %s)", source);
-  
+
   // Load and evaluate the quoted expression
   scheme_load_string (state->sc, wrapper);
-  
+
   // Get the result - it will be the quoted data structure
   pointer result = state->sc->value;
-  
+
   free (wrapper);
   free (source);
 
@@ -131,11 +133,11 @@ scheme_is_list_wrapper (scheme_state_t *state, pointer obj)
 {
   if (!state || !obj)
     return false;
-  
+
   // In TinyScheme, a list is either NIL or a pair
   if (obj == state->sc->NIL)
     return true;
-  
+
   return is_pair (obj);
 }
 
@@ -172,7 +174,7 @@ scheme_is_boolean_wrapper (scheme_state_t *state, pointer obj)
 {
   if (!state || !obj)
     return false;
-  
+
   return (obj == state->sc->T || obj == state->sc->F);
 }
 
@@ -181,7 +183,7 @@ scheme_is_null_wrapper (scheme_state_t *state, pointer obj)
 {
   if (!state || !obj)
     return false;
-  
+
   return (obj == state->sc->NIL);
 }
 
@@ -216,7 +218,7 @@ scheme_boolean_wrapper (scheme_state_t *state, pointer obj)
 {
   if (!state || !obj)
     return false;
-  
+
   return (obj != state->sc->F);
 }
 
@@ -255,17 +257,16 @@ scheme_list_ref_wrapper (scheme_state_t *state, pointer obj, int index)
     {
       current = pair_cdr (current);
     }
-  
+
   if (is_pair (current))
     return pair_car (current);
-  
+
   return state->sc->NIL;
 }
 
 // Find field in list like (field-name value...)
 pointer
-scheme_find_field (scheme_state_t *state, pointer list,
-               const char *field_name)
+scheme_find_field (scheme_state_t *state, pointer list, const char *field_name)
 {
   if (!state || !list || !field_name)
     return NULL;

@@ -22,7 +22,7 @@ camera_movement_create_default (void)
 // Process key input
 void
 camera_movement_process_key (camera_movement_component_t *movement, int key,
-                              int action)
+                             int action)
 {
   if (!movement->enabled)
     return;
@@ -39,7 +39,7 @@ camera_movement_process_key (camera_movement_component_t *movement, int key,
 // Component lifecycle
 result_t
 camera_movement_component_start (ecs_world_t *world, entity_id_t entity,
-                                  void *component_data)
+                                 void *component_data)
 {
   (void)world;
   (void)entity;
@@ -52,8 +52,8 @@ camera_movement_component_start (ecs_world_t *world, entity_id_t entity,
 
 result_t
 camera_movement_component_update (ecs_world_t *world, entity_id_t entity,
-                                   void *component_data,
-                                   const time_info_t *time)
+                                  void *component_data,
+                                  const time_info_t *time)
 {
   camera_movement_component_t *movement
       = (camera_movement_component_t *)component_data;

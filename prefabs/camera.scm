@@ -17,6 +17,10 @@
   (component "camera_movement"
     (move-speed 5.0)
     (enabled #t))
+
+  ;; Devcam
+  (component "gui")
+  (component "developer_overlay")
   
   ;; Camera rotation component
   (component "camera_rotation"

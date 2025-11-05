@@ -5,7 +5,7 @@
 // Helper: Apply partial component override (only update specified fields)
 static void
 apply_shape_component_override (scheme_state_t *state, pointer sexp,
-                                 shape_component_t *target)
+                                shape_component_t *target)
 {
   if (!state || !sexp || !target)
     return;
@@ -42,7 +42,8 @@ apply_shape_component_override (scheme_state_t *state, pointer sexp,
           // Override specific fields only
           if (strcmp (field_name, "type") == 0)
             {
-              pointer type_value = scheme_car_wrapper (state, scheme_cdr_wrapper (state, field));
+              pointer type_value = scheme_car_wrapper (
+                  state, scheme_cdr_wrapper (state, field));
               parse_shape_type (state, type_value, &target->type);
             }
           else if (strcmp (field_name, "position") == 0)
@@ -64,28 +65,28 @@ apply_shape_component_override (scheme_state_t *state, pointer sexp,
             {
               pointer visible_value = scheme_cadr_wrapper (state, field);
               if (scheme_is_boolean_wrapper (state, visible_value))
-                target->visible = scheme_boolean_wrapper (state, visible_value);
+                target->visible
+                    = scheme_boolean_wrapper (state, visible_value);
             }
         }
 
       current = scheme_cdr_wrapper (state, current);
     }
-  
+
   // Mark as dirty after override
   target->dirty = true;
 }
 
 // Helper: Parse shape type from symbol (e.g., 'box, 'sphere, 'torus)
 result_t
-parse_shape_type (scheme_state_t *state, pointer sexp,
-                  shape_type_t *out_type)
+parse_shape_type (scheme_state_t *state, pointer sexp, shape_type_t *out_type)
 {
   if (!state || !sexp || !out_type)
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
 
   // Type can be either a symbol or a string
   const char *type_str = NULL;
-  
+
   if (scheme_is_string_wrapper (state, sexp))
     {
       type_str = scheme_string_wrapper (state, sexp);
@@ -186,7 +187,8 @@ parse_shape_component (scheme_state_t *state, pointer sexp,
           if (strcmp (field_name, "type") == 0)
             {
               // field is (type "torus"), get the value after 'type'
-              pointer type_value = scheme_car_wrapper (state, scheme_cdr_wrapper (state, field));
+              pointer type_value = scheme_car_wrapper (
+                  state, scheme_cdr_wrapper (state, field));
               result_t res
                   = parse_shape_type (state, type_value, &out_component->type);
               if (res.code != RESULT_OK)
@@ -196,8 +198,8 @@ parse_shape_component (scheme_state_t *state, pointer sexp,
           else if (strcmp (field_name, "position") == 0)
             {
               pointer pos_list = scheme_cdr_wrapper (state, field);
-              result_t res = scheme_parse_vec3 (state, pos_list,
-                                            &out_component->transform.position);
+              result_t res = scheme_parse_vec3 (
+                  state, pos_list, &out_component->transform.position);
               if (res.code != RESULT_OK)
                 printf ("[Component Parser] Warning parsing position: %s\n",
                         res.message);
@@ -206,8 +208,8 @@ parse_shape_component (scheme_state_t *state, pointer sexp,
           else if (strcmp (field_name, "dimensions") == 0)
             {
               pointer dim_list = scheme_cdr_wrapper (state, field);
-              result_t res
-                  = scheme_parse_vec3 (state, dim_list, &out_component->dimensions);
+              result_t res = scheme_parse_vec3 (state, dim_list,
+                                                &out_component->dimensions);
               if (res.code != RESULT_OK)
                 printf ("[Component Parser] Warning parsing dimensions: %s\n",
                         res.message);
@@ -216,8 +218,8 @@ parse_shape_component (scheme_state_t *state, pointer sexp,
           else if (strcmp (field_name, "color") == 0)
             {
               pointer color_list = scheme_cdr_wrapper (state, field);
-              result_t res
-                  = scheme_parse_vec4 (state, color_list, &out_component->color);
+              result_t res = scheme_parse_vec4 (state, color_list,
+                                                &out_component->color);
               if (res.code != RESULT_OK)
                 printf ("[Component Parser] Warning parsing color: %s\n",
                         res.message);
@@ -323,7 +325,8 @@ parse_camera_component (scheme_state_t *state, pointer sexp,
             {
               pointer value = scheme_cadr_wrapper (state, field);
               if (scheme_is_boolean_wrapper (state, value))
-                out_component->is_active = scheme_boolean_wrapper (state, value);
+                out_component->is_active
+                    = scheme_boolean_wrapper (state, value);
             }
         }
 
@@ -454,7 +457,8 @@ parse_camera_rotation_component (scheme_state_t *state, pointer sexp,
           else if (strcmp (field_name, "look-sensitivity") == 0)
             {
               pointer value = scheme_cadr_wrapper (state, field);
-              scheme_parse_float (state, value, &out_component->look_sensitivity);
+              scheme_parse_float (state, value,
+                                  &out_component->look_sensitivity);
             }
           // Parse max-pitch
           else if (strcmp (field_name, "max-pitch") == 0)
@@ -491,6 +495,122 @@ parse_camera_rotation_component (scheme_state_t *state, pointer sexp,
   return RESULT_SUCCESS;
 }
 
+// Parse gui component from (component "gui" ...)
+result_t
+parse_gui_component (scheme_state_t *state, pointer sexp,
+                     gui_component_t *out_component)
+{
+  if (!state || !sexp || !out_component)
+    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
+
+  // Initialize with defaults
+  memset (out_component, 0, sizeof (gui_component_t));
+  out_component->enabled = true;
+  out_component->camera_entity = INVALID_ENTITY;
+
+  // Skip 'component' and "gui"
+  pointer current = scheme_cdr_wrapper (state, sexp);
+  if (scheme_is_pair_wrapper (state, current))
+    current = scheme_cdr_wrapper (state, current);
+
+  while (scheme_is_pair_wrapper (state, current))
+    {
+      pointer field = scheme_car_wrapper (state, current);
+
+      if (scheme_is_pair_wrapper (state, field))
+        {
+          pointer field_name_obj = scheme_car_wrapper (state, field);
+          if (!scheme_is_symbol_wrapper (state, field_name_obj))
+            {
+              current = scheme_cdr_wrapper (state, current);
+              continue;
+            }
+
+          const char *field_name
+              = scheme_symbol_name_wrapper (state, field_name_obj);
+          if (!field_name)
+            {
+              current = scheme_cdr_wrapper (state, current);
+              continue;
+            }
+
+          // Parse enabled
+          if (strcmp (field_name, "enabled") == 0)
+            {
+              pointer value = scheme_cadr_wrapper (state, field);
+              if (scheme_is_boolean_wrapper (state, value))
+                out_component->enabled = scheme_boolean_wrapper (state, value);
+            }
+        }
+
+      current = scheme_cdr_wrapper (state, current);
+    }
+
+  return RESULT_SUCCESS;
+}
+
+// Parse developer_overlay component from (component "developer_overlay" ...)
+result_t
+parse_developer_overlay_component (
+    scheme_state_t *state, pointer sexp,
+    developer_overlay_component_t *out_component)
+{
+  if (!state || !sexp || !out_component)
+    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
+
+  // Initialize with defaults
+  memset (out_component, 0, sizeof (developer_overlay_component_t));
+  out_component->enabled = true;
+  out_component->gui_entity = INVALID_ENTITY;
+  out_component->fps_update_interval = 0.5f;
+
+  // Skip 'component' and "developer_overlay"
+  pointer current = scheme_cdr_wrapper (state, sexp);
+  if (scheme_is_pair_wrapper (state, current))
+    current = scheme_cdr_wrapper (state, current);
+
+  while (scheme_is_pair_wrapper (state, current))
+    {
+      pointer field = scheme_car_wrapper (state, current);
+
+      if (scheme_is_pair_wrapper (state, field))
+        {
+          pointer field_name_obj = scheme_car_wrapper (state, field);
+          if (!scheme_is_symbol_wrapper (state, field_name_obj))
+            {
+              current = scheme_cdr_wrapper (state, current);
+              continue;
+            }
+
+          const char *field_name
+              = scheme_symbol_name_wrapper (state, field_name_obj);
+          if (!field_name)
+            {
+              current = scheme_cdr_wrapper (state, current);
+              continue;
+            }
+
+          // Parse enabled
+          if (strcmp (field_name, "enabled") == 0)
+            {
+              pointer value = scheme_cadr_wrapper (state, field);
+              if (scheme_is_boolean_wrapper (state, value))
+                out_component->enabled = scheme_boolean_wrapper (state, value);
+            }
+          // Parse fps-update-interval
+          else if (strcmp (field_name, "fps-update-interval") == 0)
+            {
+              pointer value = scheme_cadr_wrapper (state, field);
+              scheme_parse_float (state, value,
+                                  &out_component->fps_update_interval);
+            }
+        }
+
+      current = scheme_cdr_wrapper (state, current);
+    }
+
+  return RESULT_SUCCESS;
+}
 
 // Public function to apply component override based on type
 void
@@ -502,7 +622,8 @@ apply_component_override (scheme_state_t *state, const char *component_name,
 
   if (strcmp (component_name, "shape") == 0)
     {
-      apply_shape_component_override (state, sexp, (shape_component_t *)target_component);
+      apply_shape_component_override (state, sexp,
+                                      (shape_component_t *)target_component);
     }
   // Add other component types as needed
   // else if (strcmp (component_name, "camera") == 0) { ... }
