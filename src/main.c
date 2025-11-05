@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// Helper to find camera entity with movement/rotation components
 static entity_id_t
 find_camera_entity (ecs_world_t *world)
 {
@@ -20,28 +19,24 @@ find_camera_entity (ecs_world_t *world)
   return camera_entity;
 }
 
-// GLFW callback wrappers that forward to camera components
 static void
-key_callback_with_camera (GLFWwindow *window, int key, int scancode, int action,
-                          int mods)
+key_callback_with_camera (GLFWwindow *window, int key, int scancode,
+                          int action, int mods)
 {
   (void)scancode;
 
   engine_state_t *state = (engine_state_t *)glfwGetWindowUserPointer (window);
 
-  // Forward to base callback
   glfw_key_callback (window, key, scancode, action, mods);
 
-  // Forward to camera movement component
   if (state->world_manager && state->world_manager->active_world)
     {
       entity_id_t camera_entity
           = find_camera_entity (state->world_manager->active_world);
       if (camera_entity != INVALID_ENTITY)
         {
-          component_id_t movement_id
-              = ecs_get_component_id (state->world_manager->active_world,
-                                      "camera_movement");
+          component_id_t movement_id = ecs_get_component_id (
+              state->world_manager->active_world, "camera_movement");
           if (movement_id != INVALID_ENTITY)
             {
               camera_movement_component_t *movement
@@ -62,19 +57,16 @@ mouse_callback_with_camera (GLFWwindow *window, double xpos, double ypos)
 {
   engine_state_t *state = (engine_state_t *)glfwGetWindowUserPointer (window);
 
-  // Forward to base callback (for backward compatibility)
   glfw_mouse_callback (window, xpos, ypos);
 
-  // Forward to camera rotation component
   if (state->world_manager && state->world_manager->active_world)
     {
       entity_id_t camera_entity
           = find_camera_entity (state->world_manager->active_world);
       if (camera_entity != INVALID_ENTITY)
         {
-          component_id_t rotation_id
-              = ecs_get_component_id (state->world_manager->active_world,
-                                      "camera_rotation");
+          component_id_t rotation_id = ecs_get_component_id (
+              state->world_manager->active_world, "camera_rotation");
           if (rotation_id != INVALID_ENTITY)
             {
               camera_rotation_component_t *rotation
@@ -99,13 +91,12 @@ main (int argc, char **argv)
   printf ("=== HitE ===\n");
   printf ("High-performance Vulkan raymarching engine\n\n");
 
-  // Engine configuration
+  // Engine config
   engine_config_t config = engine_config_default ();
 
   engine_state_t state;
   prefab_system_t *prefab_system = NULL;
 
-  // Initialize engine
   result_t result = engine_init (&state, &config);
   if (result.code != RESULT_OK)
     {
@@ -115,11 +106,9 @@ main (int argc, char **argv)
       return 1;
     }
 
-  // Override callbacks to include camera component forwarding
   glfwSetKeyCallback (state.window, key_callback_with_camera);
   glfwSetCursorPosCallback (state.window, mouse_callback_with_camera);
 
-  // Load world and prefabs
   result = engine_load_world (&state, &config, &prefab_system);
   if (result.code != RESULT_OK)
     {
@@ -130,10 +119,10 @@ main (int argc, char **argv)
       return 1;
     }
 
-  // Run main loop
+  // run main loop
   engine_run (&state);
 
-  // Cleanup
+  // cleanup
   if (prefab_system)
     prefab_system_destroy (prefab_system);
   engine_cleanup (&state);
