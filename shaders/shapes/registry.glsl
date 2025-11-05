@@ -19,7 +19,7 @@ float eval_shape(vec3 local_p, vec4 position, vec4 dimensions, vec4 params) {
   if (t == 1u) return shape_box_eval(local_p, dimensions.xyz);
   if (t == 2u) return shape_torus_eval(local_p, dimensions.xy);
   if (t == 3u) return shape_plane_eval(local_p, dimensions.xyz, dimensions.w);
-  if (t == 7u) return shape_terrain_eval(local_p, dimensions.x, dimensions.y, dimensions.z, params.x, params.y);
+  if (t == 7u) return shape_terrain_eval(local_p, params.x); // params.x = seed
   
   return 1e9;
 }

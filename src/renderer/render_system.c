@@ -25,8 +25,16 @@ shape_to_sdf_object (const shape_component_t *shape, sdf_object_t *sdf)
                   shape->dimensions.z,
                   (float)shape->type }; // w = type (stored as float)
 
-  // Send common params: x=roughness, y=smoothing (used by shapes like terrain)
-  sdf->params = (vec4_t){ shape->roughness, shape->smoothing, 0.0f, 0.0f };
+  // For terrain, send seed in params.x; for other shapes, send roughness/smoothing
+  if (shape->type == SHAPE_TERRAIN)
+    {
+      sdf->params = (vec4_t){ shape->roughness, 0.0f, 0.0f, 0.0f }; // roughness stores seed for terrain
+    }
+  else
+    {
+      // Send common params: x=roughness, y=smoothing (used by other shapes)
+      sdf->params = (vec4_t){ shape->roughness, shape->smoothing, 0.0f, 0.0f };
+    }
 }
 
 result_t

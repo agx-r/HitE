@@ -69,6 +69,15 @@ apply_shape_component_override (scheme_state_t *state, pointer sexp,
                 target->visible
                     = scheme_boolean_wrapper (state, visible_value);
             }
+          // Parse seed (for terrain shape)
+          else if (strcmp (field_name, "seed") == 0)
+            {
+              pointer seed_value = scheme_cadr_wrapper (state, field);
+              if (target->type == SHAPE_TERRAIN)
+                {
+                  scheme_parse_float (state, seed_value, &target->roughness);
+                }
+            }
         }
 
       current = scheme_cdr_wrapper (state, current);
@@ -231,6 +240,19 @@ parse_shape_component (scheme_state_t *state, pointer sexp,
               if (scheme_is_boolean_wrapper (state, visible_value))
                 out_component->visible
                     = scheme_boolean_wrapper (state, visible_value);
+            }
+          // Parse seed (for terrain shape)
+          else if (strcmp (field_name, "seed") == 0)
+            {
+              pointer seed_value = scheme_cadr_wrapper (state, field);
+              if (out_component->type == SHAPE_TERRAIN)
+                {
+                  result_t res = scheme_parse_float (state, seed_value,
+                                                      &out_component->roughness);
+                  if (res.code != RESULT_OK)
+                    printf ("[Component Parser] Warning parsing seed: %s\n",
+                            res.message);
+                }
             }
         }
 
