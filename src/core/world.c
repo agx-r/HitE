@@ -59,17 +59,8 @@ world_load (world_manager_t *manager, const world_definition_t *definition)
   // Set time configuration
   world->time.fixed_delta_time = definition->fixed_delta_time;
 
-  // Run procedural generator if provided
-  if (definition->generator)
-    {
-      result_t result
-          = definition->generator (world, definition->generator_data);
-      if (result.code != RESULT_OK)
-        {
-          ecs_world_destroy (world);
-          return result;
-        }
-    }
+  // All entities are now defined in the world file or loaded from prefabs
+  // No separate C generators needed
 
   // Instantiate entity templates
   if (definition->entity_templates && definition->entity_template_count > 0)
@@ -129,7 +120,7 @@ world_instantiate_templates (ecs_world_t *world,
       for (size_t j = 0; j < tmpl->component_count; j++)
         {
           const char *component_name = tmpl->components[j].component_name;
-          const void *initial_data = tmpl->components[j].initial_data;
+          const void *initial_data = tmpl->components[j].data;
 
           component_id_t component_id
               = ecs_get_component_id (world, component_name);

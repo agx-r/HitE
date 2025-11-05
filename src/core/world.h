@@ -4,7 +4,30 @@
 #include "ecs.h"
 #include "types.h"
 
-// Entity template for world definition
+// Component override for prefab instances
+typedef struct
+{
+  const char *component_name;
+  void *override_data;      // Override data (NULL if not overriding)
+  size_t override_data_size;
+} component_override_t;
+
+// Prefab instance with optional overrides
+typedef struct
+{
+  const char *prefab_name;   // Reference to prefab to instantiate
+  const char *instance_name; // Optional custom name for this instance
+
+  // Component overrides (to modify prefab components)
+  component_override_t *overrides;
+  size_t override_count;
+
+  // Additional components (not in prefab)
+  component_override_t *additional_components;
+  size_t additional_component_count;
+} prefab_instance_t;
+
+// Entity template (fully defined in world file, no prefab)
 typedef struct
 {
   const char *name;
@@ -13,13 +36,11 @@ typedef struct
   struct
   {
     const char *component_name;
-    const void *initial_data;
+    void *data;
+    size_t data_size;
   } *components;
   size_t component_count;
 } entity_template_t;
-
-// World generation function
-typedef result_t (*world_generator_fn) (ecs_world_t *world, void *user_data);
 
 // World definition
 typedef struct
@@ -30,16 +51,13 @@ typedef struct
   float fixed_delta_time;
   bool use_fixed_timestep;
 
-  // Entity templates
+  // Prefab instances (with optional overrides)
+  prefab_instance_t *prefab_instances;
+  size_t prefab_instance_count;
+
+  // Entity templates (defined inline in .world file)
   entity_template_t *entity_templates;
   size_t entity_template_count;
-
-  // Optional: procedural generation
-  world_generator_fn generator;
-  void *generator_data;
-
-  // GPU generation flag
-  bool generate_on_gpu;
 } world_definition_t;
 
 // Global world manager
@@ -72,5 +90,8 @@ result_t world_switch (world_manager_t *manager,
 
 // Update active world
 result_t world_update (world_manager_t *manager, float delta_time);
+
+// Free world definition
+void world_definition_free (world_definition_t *definition);
 
 #endif // HITE_WORLD_H

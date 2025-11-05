@@ -255,8 +255,9 @@ shape_component_update (ecs_world_t *world, entity_id_t entity,
   (void)world;
   (void)entity;
   (void)time;
+  (void)component_data;
 
-  shape_component_t *shape = (shape_component_t *)component_data;
+  // shape_component_t *shape = (shape_component_t *)component_data;
 
   // Mark dirty if transform changed (simplified - in real impl would check
   // change flags) This is where you could animate shapes procedurally
