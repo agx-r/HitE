@@ -1,5 +1,6 @@
 #include "camera_movement_component.h"
 #include "camera_component.h"
+#include "component_registry.h"
 
 #include <GLFW/glfw3.h>
 #include <math.h>
@@ -134,23 +135,8 @@ camera_movement_component_destroy (void *component_data)
 void
 camera_movement_component_register (ecs_world_t *world)
 {
-  component_descriptor_t desc = { 0 };
-  desc.name = "camera_movement";
-  desc.data_size = sizeof (camera_movement_component_t);
-  desc.alignment = 64;
-  desc.start = camera_movement_component_start;
-  desc.update = camera_movement_component_update;
-  desc.destroy = camera_movement_component_destroy;
-
-  component_id_t id;
-  result_t result = ecs_register_component (world, &desc, &id);
-
-  if (result.code == RESULT_OK)
-    {
-      printf ("[Camera Movement] Component registered (ID: %u)\n", id);
-    }
-  else
-    {
-      printf ("[Camera Movement] Failed to register: %s\n", result.message);
-    }
+  REGISTER_COMPONENT (world, "camera_movement", camera_movement_component_t,
+                      camera_movement_component_start, camera_movement_component_update,
+                      NULL, camera_movement_component_destroy,
+                      "Camera Movement", 64, NULL);
 }

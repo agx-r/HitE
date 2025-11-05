@@ -1,5 +1,6 @@
 #include "developer_overlay_component.h"
 #include "gui_component.h"
+#include "component_registry.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -193,31 +194,9 @@ developer_overlay_component_destroy (void *component_data)
 void
 developer_overlay_component_register (ecs_world_t *world)
 {
-  // Define dependencies: developer_overlay depends on gui
   static const char *dependencies[] = { "gui", NULL };
-
-  component_descriptor_t desc = { 0 };
-  desc.name = "developer_overlay";
-  desc.data_size = sizeof (developer_overlay_component_t);
-  desc.alignment = 64;
-  desc.dependencies = dependencies;
-  desc.start = developer_overlay_component_start;
-  desc.update = developer_overlay_component_update;
-  desc.render = developer_overlay_component_render;
-  desc.destroy = developer_overlay_component_destroy;
-
-  component_id_t id;
-  result_t result = ecs_register_component (world, &desc, &id);
-
-  if (result.code == RESULT_OK)
-    {
-      printf ("[DevOverlay] Developer overlay component registered (ID: %u)\n",
-              id);
-    }
-  else
-    {
-      printf (
-          "[DevOverlay] Failed to register developer overlay component: %s\n",
-          result.message);
-    }
+  REGISTER_COMPONENT (world, "developer_overlay", developer_overlay_component_t,
+                      developer_overlay_component_start, developer_overlay_component_update,
+                      developer_overlay_component_render, developer_overlay_component_destroy,
+                      "DevOverlay", 64, dependencies);
 }

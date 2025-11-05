@@ -1,4 +1,5 @@
 #include "shape_component.h"
+#include "component_registry.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -85,16 +86,10 @@ shape_component_destroy (void *component_data)
 void
 shape_component_register (ecs_world_t *world)
 {
-  component_descriptor_t desc = { 0 };
-  desc.name = "shape";
-  desc.data_size = sizeof (shape_component_t);
-  desc.start = shape_component_start;
-  desc.update = shape_component_update;
-  desc.render = shape_component_render;
-  desc.destroy = shape_component_destroy;
-
-  component_id_t id;
-  ecs_register_component (world, &desc, &id);
+  REGISTER_COMPONENT (world, "shape", shape_component_t,
+                      shape_component_start, shape_component_update,
+                      shape_component_render, shape_component_destroy,
+                      "Shape", 0, NULL);
 }
 
 // Helper constructors for common shapes (simplified to set fields only)

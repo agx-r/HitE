@@ -1,4 +1,5 @@
 #include "camera_component.h"
+#include "component_registry.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -128,25 +129,8 @@ camera_component_destroy (void *component_data)
 void
 camera_component_register (ecs_world_t *world)
 {
-  component_descriptor_t desc = { 0 };
-  desc.name = "camera";
-  desc.data_size = sizeof (camera_component_t);
-  desc.alignment = 64;
-  desc.start = camera_component_start;
-  desc.update = camera_component_update;
-  desc.render = camera_component_render;
-  desc.destroy = camera_component_destroy;
-
-  component_id_t id;
-  result_t result = ecs_register_component (world, &desc, &id);
-
-  if (result.code == RESULT_OK)
-    {
-      printf ("[Camera] Camera component registered (ID: %u)\n", id);
-    }
-  else
-    {
-      printf ("[Camera] Failed to register camera component: %s\n",
-              result.message);
-    }
+  REGISTER_COMPONENT (world, "camera", camera_component_t,
+                      camera_component_start, camera_component_update,
+                      camera_component_render, camera_component_destroy,
+                      "Camera", 64, NULL);
 }

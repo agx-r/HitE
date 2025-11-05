@@ -1,5 +1,6 @@
 #include "camera_rotation_component.h"
 #include "camera_component.h"
+#include "component_registry.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -126,23 +127,8 @@ camera_rotation_component_destroy (void *component_data)
 void
 camera_rotation_component_register (ecs_world_t *world)
 {
-  component_descriptor_t desc = { 0 };
-  desc.name = "camera_rotation";
-  desc.data_size = sizeof (camera_rotation_component_t);
-  desc.alignment = 64;
-  desc.start = camera_rotation_component_start;
-  desc.update = camera_rotation_component_update;
-  desc.destroy = camera_rotation_component_destroy;
-
-  component_id_t id;
-  result_t result = ecs_register_component (world, &desc, &id);
-
-  if (result.code == RESULT_OK)
-    {
-      printf ("[Camera Rotation] Component registered (ID: %u)\n", id);
-    }
-  else
-    {
-      printf ("[Camera Rotation] Failed to register: %s\n", result.message);
-    }
+  REGISTER_COMPONENT (world, "camera_rotation", camera_rotation_component_t,
+                      camera_rotation_component_start, camera_rotation_component_update,
+                      NULL, camera_rotation_component_destroy,
+                      "Camera Rotation", 64, NULL);
 }

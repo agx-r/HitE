@@ -1,5 +1,6 @@
 #include "gui_component.h"
 #include "camera_component.h"
+#include "component_registry.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -94,30 +95,11 @@ gui_component_destroy (void *component_data)
 void
 gui_component_register (ecs_world_t *world)
 {
-  // Define dependencies: GUI depends on camera
   static const char *dependencies[] = { "camera", NULL };
-
-  component_descriptor_t desc = { 0 };
-  desc.name = "gui";
-  desc.data_size = sizeof (gui_component_t);
-  desc.alignment = 64;
-  desc.dependencies = dependencies;
-  desc.start = gui_component_start;
-  desc.update = gui_component_update;
-  desc.render = gui_component_render;
-  desc.destroy = gui_component_destroy;
-
-  component_id_t id;
-  result_t result = ecs_register_component (world, &desc, &id);
-
-  if (result.code == RESULT_OK)
-    {
-      printf ("[GUI] GUI component registered (ID: %u)\n", id);
-    }
-  else
-    {
-      printf ("[GUI] Failed to register GUI component: %s\n", result.message);
-    }
+  REGISTER_COMPONENT (world, "gui", gui_component_t,
+                      gui_component_start, gui_component_update,
+                      gui_component_render, gui_component_destroy,
+                      "GUI", 64, dependencies);
 }
 
 // helpers

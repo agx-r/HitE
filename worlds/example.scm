@@ -5,7 +5,7 @@
   
   (entity (prefab "torus")
     (component "shape"
-      (position 0 6 0)))
+      (position 0 4 0)))
   (entity (prefab "torus")
     (component "shape"
       (position 0 2 0)))

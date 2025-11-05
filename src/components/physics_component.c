@@ -1,5 +1,6 @@
 #include "physics_component.h"
 #include "shape_component.h"
+#include "component_registry.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -95,24 +96,10 @@ physics_component_destroy (void *component_data)
 void
 physics_component_register (ecs_world_t *world)
 {
-  component_descriptor_t descriptor = { 0 };
-  descriptor.name = "physics";
-  descriptor.data_size = sizeof (physics_component_t);
-  descriptor.alignment = 64;
-  descriptor.dependencies = physics_dependencies;
-  descriptor.start = physics_component_start;
-  descriptor.update = physics_component_update;
-  descriptor.render = NULL;
-  descriptor.destroy = physics_component_destroy;
-
-  component_id_t id;
-  result_t result = ecs_register_component (world, &descriptor, &id);
-
-  if (result.code != RESULT_OK)
-    {
-      fprintf (stderr, "[Error] Failed to register physics component: %s\n",
-               result.message);
-    }
+  REGISTER_COMPONENT (world, "physics", physics_component_t,
+                      physics_component_start, physics_component_update,
+                      NULL, physics_component_destroy,
+                      "Physics", 64, physics_dependencies);
 }
 
 void

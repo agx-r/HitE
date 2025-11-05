@@ -46,6 +46,7 @@ add_executable(hite ${SOURCES})
 
 target_include_directories(hite PRIVATE
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src/components
     ${CMAKE_SOURCE_DIR}/external/tinyscheme
     ${Vulkan_INCLUDE_DIRS}
 )
