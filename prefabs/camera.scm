@@ -3,7 +3,7 @@
   (name "camera")
   (description "Camera entity with movement and rotation components")
   
-  ;; Camera component (position, direction, fov)
+  ;; Position, direction, fov
   (component "camera"
     (position 0 0 0)
     (direction 0 -0.3 1)
@@ -13,7 +13,7 @@
     (far-plane 1000.0)
     (active #t))
   
-  ;; Camera movement component
+  ;; Movement
   (component "camera_movement"
     (move-speed 5.0)
     (enabled #t))
@@ -22,7 +22,7 @@
   (component "gui")
   (component "developer_overlay")
   
-  ;; Camera rotation component
+  ;; Potation
   (component "camera_rotation"
     (yaw -3.14159)
     (pitch -0.3)
