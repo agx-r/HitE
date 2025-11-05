@@ -14,6 +14,7 @@ typedef enum
   SHAPE_CYLINDER = 4,
   SHAPE_CAPSULE = 5,
   SHAPE_CONE = 6,
+  SHAPE_TERRAIN = 7,
   SHAPE_CUSTOM = 100,
 } shape_type_t;
 
@@ -39,13 +40,7 @@ typedef struct
   shape_type_t type;
   shape_operation_t operation;
 
-  // Dimensions (interpretation depends on shape type)
-  // Sphere: x=radius
-  // Box: xyz=half-extents
-  // Torus: x=major radius, y=minor radius
-  // Cylinder: x=radius, y=height
-  // Capsule: x=radius, y=height
-  // Cone: x=radius, y=height
+  // Dimensions
   vec3_t dimensions;
 
   // Material properties
@@ -67,28 +62,11 @@ typedef struct
   uint32_t gpu_index;
 } ALIGN_64 shape_component_t;
 
-// Pure SDF evaluation functions (CPU-side for physics/collision)
-
-// Basic primitives
-float sdf_sphere (vec3_t p, float radius);
-float sdf_box (vec3_t p, vec3_t half_extents);
-float sdf_torus (vec3_t p, float major_radius, float minor_radius);
-float sdf_plane (vec3_t p, vec3_t normal, float distance);
-float sdf_cylinder (vec3_t p, float radius, float height);
-float sdf_capsule (vec3_t p, float radius, float height);
-float sdf_cone (vec3_t p, float radius, float height);
-
-// Shape operations
-float sdf_union (float d1, float d2);
-float sdf_subtraction (float d1, float d2);
-float sdf_intersection (float d1, float d2);
-float sdf_smooth_union (float d1, float d2, float k);
-
 // Transform helpers
 vec3_t transform_point (vec3_t point, const transform_t *transform);
 vec3_t transform_point_inverse (vec3_t point, const transform_t *transform);
 
-// Evaluate shape component's SDF at a world-space point
+// Evaluate shape component's SDF at a world-space point (CPU stub)
 float shape_evaluate_sdf (const shape_component_t *shape, vec3_t world_point);
 
 // Component lifecycle functions

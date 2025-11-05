@@ -93,13 +93,13 @@ camera_movement_component_update (ecs_world_t *world, entity_id_t entity,
   if (movement->keys[GLFW_KEY_W])
     {
       camera->position.x += forward.x * speed;
-      // camera->position.y += forward.y * speed;
+      camera->position.y += forward.y * speed;
       camera->position.z += forward.z * speed;
     }
   if (movement->keys[GLFW_KEY_S])
     {
       camera->position.x -= forward.x * speed;
-      // camera->position.y -= forward.y * speed;
+      camera->position.y -= forward.y * speed;
       camera->position.z -= forward.z * speed;
     }
   if (movement->keys[GLFW_KEY_A])

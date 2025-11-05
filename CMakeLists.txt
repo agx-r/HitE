@@ -65,14 +65,19 @@ file(GLOB_RECURSE SHADER_SOURCES
     "${CMAKE_SOURCE_DIR}/shaders/*.frag"
 )
 
+# All GLSL files (for dependencies)
+file(GLOB_RECURSE GLSL_FILES
+    "${CMAKE_SOURCE_DIR}/shaders/*.glsl"
+)
+
 foreach(SHADER ${SHADER_SOURCES})
     get_filename_component(SHADER_NAME ${SHADER} NAME)
     set(SHADER_OUTPUT "${CMAKE_BINARY_DIR}/shaders/${SHADER_NAME}.spv")
     add_custom_command(
         OUTPUT ${SHADER_OUTPUT}
         COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/shaders"
-        COMMAND glslangValidator -V ${SHADER} -o ${SHADER_OUTPUT} || ${Vulkan_GLSLC_EXECUTABLE} ${SHADER} -o ${SHADER_OUTPUT}
-        DEPENDS ${SHADER}
+        COMMAND glslangValidator -I${CMAKE_SOURCE_DIR}/shaders -V ${SHADER} -o ${SHADER_OUTPUT} || ${Vulkan_GLSLC_EXECUTABLE} -I${CMAKE_SOURCE_DIR}/shaders ${SHADER} -o ${SHADER_OUTPUT}
+        DEPENDS ${SHADER} ${GLSL_FILES}
         COMMENT "Compiling shader ${SHADER_NAME}"
     )
     list(APPEND SHADER_OUTPUTS ${SHADER_OUTPUT})

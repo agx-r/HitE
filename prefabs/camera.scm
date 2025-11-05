@@ -8,14 +8,14 @@
     (position 0 0 0)
     (direction 0 -0.3 1)
     (up 0 1 0)
-    (fov 70.0)
+    (fov 90.0)
     (near-plane 0.1)
     (far-plane 1000.0)
     (active #t))
   
   ;; Movement
   (component "camera_movement"
-    (move-speed 5.0)
+    (move-speed 10.0)
     (enabled #t))
 
   ;; Devcam

@@ -25,9 +25,8 @@ shape_to_sdf_object (const shape_component_t *shape, sdf_object_t *sdf)
                   shape->dimensions.z,
                   (float)shape->type }; // w = type (stored as float)
 
-  sdf->params = (vec4_t){ shape->smoothing, // x = smoothing
-                          0.0f,             // y = material_id
-                          0.0f, 0.0f };     // z,w = reserved
+  // Send common params: x=roughness, y=smoothing (used by shapes like terrain)
+  sdf->params = (vec4_t){ shape->roughness, shape->smoothing, 0.0f, 0.0f };
 }
 
 result_t

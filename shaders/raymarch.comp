@@ -1,4 +1,5 @@
 #version 450
+#extension GL_GOOGLE_include_directive : require
 
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
@@ -8,10 +9,10 @@ layout (binding = 0) uniform Uniforms
   mat4 projection_matrix;
   vec4 camera_position;
   vec4 camera_direction;
-  vec4 resolution; // vec2_t is ALIGN_16 = 16 bytes
+  vec4 resolution;
   float time;
   uint object_count;
-  float _padding[2]; // should be 192 bytes total
+  float _padding[2];
 }
 ubo;
 
@@ -19,202 +20,47 @@ layout (binding = 1, rgba8) uniform writeonly image2D output_image;
 
 struct SDFObject
 {
-  vec4 position;   // xyz = position, w = radius
-  vec4 color;      // rgba
-  vec4 dimensions; // xyz = dimensions, w = type (as float)
-  vec4 params;     // x = smoothing, y = material_id, z/w = reserved
-                   // should be 64 bytes (4 vec4)
+  vec4 position;
+  vec4 color;
+  vec4 dimensions;
+  vec4 params;
 };
 
 layout (std430, binding = 2) buffer SDFObjects { SDFObject objects[]; }
 sdf_objects;
 
-// consts
-const int MAX_STEPS = 128;
-const float MAX_DIST = 100.0;
-const float EPSILON = 0.001;
+// Include all modules
+#include "raymarch_core.glsl"
 
-vec3
-linear_to_srgb (vec3 linear)
-{
-  return pow (linear, vec3 (1.0 / 2.2));
+vec3 linear_to_srgb(vec3 linear) {
+  return pow(linear, vec3(1.0 / 2.2));
 }
 
-// SDF primitives
-float
-sdf_sphere (vec3 p, float r)
-{
-  return length (p) - r;
-}
+void main() {
+  ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
 
-float
-sdf_box (vec3 p, vec3 b)
-{
-  vec3 q = abs (p) - b;
-  return length (max (q, 0.0)) + min (max (q.x, max (q.y, q.z)), 0.0);
-}
+  if (pixel_coords.x >= int(ubo.resolution.x) || pixel_coords.y >= int(ubo.resolution.y)) {
+    return;
+  }
 
-float
-sdf_torus (vec3 p, vec2 t)
-{
-  vec2 q = vec2 (length (p.xz) - t.x, p.y);
-  return length (q) - t.y;
-}
+  // Calculate UV coordinates
+  vec2 uv = (vec2(pixel_coords.x, ubo.resolution.y - pixel_coords.y)
+             - ubo.resolution.xy * 0.5) / ubo.resolution.y;
 
-float
-sdf_plane (vec3 p, vec3 n, float h)
-{
-  return dot (p, n) + h;
-}
-
-// for blending
-float
-smooth_min (float a, float b, float k)
-{
-  float h = clamp (0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
-  return mix (b, a, h) - k * h * (1.0 - h);
-}
-
-float
-scene_sdf (vec3 p, out vec4 color)
-{
-  float min_dist = MAX_DIST;
-  color = vec4 (0.1, 0.1, 0.1, 1.0);
-
-  // Iterate through active SDF objects only
-  for (uint i = 0u; i < ubo.object_count; i++)
-    {
-      SDFObject obj = sdf_objects.objects[i];
-
-      vec3 local_p = p - obj.position.xyz;
-      float dist = MAX_DIST;
-
-      // Get type from dimensions.w
-      uint obj_type = uint (obj.dimensions.w);
-
-      // Evaluate SDF based on type
-      if (obj_type == 0u)
-        {
-          // Sphere
-          dist = sdf_sphere (local_p, obj.position.w);
-        }
-      else if (obj_type == 1u)
-        {
-          // Box
-          dist = sdf_box (local_p, obj.dimensions.xyz);
-        }
-      else if (obj_type == 2u)
-        {
-          // Torus
-          dist = sdf_torus (local_p, obj.dimensions.xy);
-        }
-      else if (obj_type == 3u)
-        {
-          // Plane
-          dist = sdf_plane (local_p, obj.dimensions.xyz, obj.dimensions.w);
-        }
-
-      // Update closest object
-      if (dist < min_dist)
-        {
-          min_dist = dist;
-          color = obj.color;
-        }
-    }
-
-  return min_dist;
-}
-
-// tetrahedron
-vec3
-calculate_normal (vec3 p)
-{
-  vec4 dummy_color;
-  const float h = EPSILON;
-  const vec2 k = vec2 (1, -1);
-  return normalize (k.xyy * scene_sdf (p + k.xyy * h, dummy_color)
-                    + k.yyx * scene_sdf (p + k.yyx * h, dummy_color)
-                    + k.yxy * scene_sdf (p + k.yxy * h, dummy_color)
-                    + k.xxx * scene_sdf (p + k.xxx * h, dummy_color));
-}
-
-vec3
-apply_lighting (vec3 p, vec3 normal, vec3 color)
-{
-  vec3 light_pos = vec3 (5.0, 10.0, 5.0);
-  vec3 light_dir = normalize (light_pos - p);
-
-  float diffuse = max (dot (normal, light_dir), 0.0);
-
-  float ambient = 0.2;
-
-  vec3 view_dir = normalize (ubo.camera_position.xyz - p);
-  vec3 reflect_dir = reflect (-light_dir, normal);
-  float specular = pow (max (dot (view_dir, reflect_dir), 0.0), 32.0);
-
-  return color * (ambient + 0.6 * diffuse) + vec3 (0.3) * specular;
-}
-
-vec4
-raymarch (vec3 ro, vec3 rd)
-{
-  float depth = 0.0;
-  vec4 color = vec4 (0.0);
-
-  for (int i = 0; i < MAX_STEPS; i++)
-    {
-      vec3 p = ro + rd * depth;
-      float dist = scene_sdf (p, color);
-
-      if (dist < EPSILON)
-        {
-          // Hit
-          vec3 normal = calculate_normal (p);
-          vec3 lit_color = apply_lighting (p, normal, color.rgb);
-          return vec4 (lit_color, 1.0);
-        }
-
-      depth += dist;
-
-      if (depth >= MAX_DIST)
-        {
-          break;
-        }
-    }
-
-  // Bg gradient
-  float t = rd.y * 0.5 + 0.5;
-  vec3 bg = mix (vec3 (0.06, 0.06, 0.06), vec3 (0.1, 0.1, 0.1), t);
-  return vec4 (bg, 1.0);
-}
-
-void
-main ()
-{
-  ivec2 pixel_coords = ivec2 (gl_GlobalInvocationID.xy);
-
-  if (pixel_coords.x >= int (ubo.resolution.x)
-      || pixel_coords.y >= int (ubo.resolution.y))
-    {
-      return;
-    }
+  // Camera setup
+  vec3 ro = ubo.camera_position.xyz;
+  vec3 forward = normalize(ubo.camera_direction.xyz);
+  vec3 right = normalize(cross(forward, vec3(0.0, 1.0, 0.0)));
+  vec3 up = cross(right, forward);
 
   // Ray direction
-  vec2 uv = (vec2 (pixel_coords.x, ubo.resolution.y - pixel_coords.y)
-             - ubo.resolution.xy * 0.5)
-            / ubo.resolution.y;
-
-  // Camera
-  vec3 ro = ubo.camera_position.xyz;
-  vec3 forward = normalize (ubo.camera_direction.xyz);
-  vec3 right = normalize (cross (forward, vec3 (0.0, 1.0, 0.0)));
-  vec3 up = cross (right, forward);
-
-  // Ray dir by FOV
   float fov = 1.0;
-  vec3 rd = normalize (forward + uv.x * right * fov + uv.y * up * fov);
+  vec3 rd = normalize(forward + uv.x * right * fov + uv.y * up * fov);
 
-  vec4 color = raymarch (ro, rd);
-
-  imageStore (output_image, pixel_coords, color);
+  // Raymarch
+  vec4 color = raymarch(ro, rd, ubo.camera_position.xyz);
+  
+  // Convert to sRGB and write
+  color.rgb = linear_to_srgb(color.rgb);
+  imageStore(output_image, pixel_coords, color);
 }

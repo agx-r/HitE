@@ -1,4 +1,5 @@
 #include "component_parsers.h"
+#include "../components/shape_component.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -84,9 +85,7 @@ parse_shape_type (scheme_state_t *state, pointer sexp, shape_type_t *out_type)
   if (!state || !sexp || !out_type)
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
 
-  // Type can be either a symbol or a string
   const char *type_str = NULL;
-
   if (scheme_is_string_wrapper (state, sexp))
     {
       type_str = scheme_string_wrapper (state, sexp);
@@ -106,7 +105,6 @@ parse_shape_type (scheme_state_t *state, pointer sexp, shape_type_t *out_type)
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                          "Failed to get shape type");
 
-  // Match shape type
   if (strcmp (type_str, "sphere") == 0)
     *out_type = SHAPE_SPHERE;
   else if (strcmp (type_str, "box") == 0)
@@ -121,6 +119,8 @@ parse_shape_type (scheme_state_t *state, pointer sexp, shape_type_t *out_type)
     *out_type = SHAPE_CAPSULE;
   else if (strcmp (type_str, "cone") == 0)
     *out_type = SHAPE_CONE;
+  else if (strcmp (type_str, "terrain") == 0)
+    *out_type = SHAPE_TERRAIN;
   else
     {
       char err[128];
