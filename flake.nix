@@ -40,15 +40,13 @@
           cmakeFlags = [
             "-DCMAKE_BUILD_TYPE=Release"
             "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+            "-DCMAKE_INSTALL_PREFIX=$out"
           ];
-
+          
+          # Use CMake install to properly copy all files including compiled shaders
           installPhase = ''
-            mkdir -p $out/bin
-            mkdir -p $out/share/hite
-            cp hite $out/bin/
-            if [ -d shaders ]; then
-              cp -r shaders $out/share/hite/
-            fi
+            # CMake install will copy everything according to CMakeLists.txt
+            cmake --install . --prefix $out
           '';
         };
 

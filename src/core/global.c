@@ -4,6 +4,7 @@
 #include "../components/camera_rotation_component.h"
 #include "../components/developer_overlay_component.h"
 #include "../components/gui_component.h"
+#include "../components/lighting_component.h"
 #include "../components/physics_component.h"
 #include "../components/shape_component.h"
 #include "component_parsers.h"
@@ -20,7 +21,6 @@
 #define DEFAULT_WINDOW_HEIGHT 720
 #define DEFAULT_WINDOW_TITLE "HitE"
 
-// default config
 engine_config_t
 engine_config_default (void)
 {
@@ -114,7 +114,6 @@ process_camera_movement (engine_state_t *state, float delta_time)
   right.y = 0;
   right.z = forward.x;
 
-  // Normalize
   float len = sqrtf (right.x * right.x + right.z * right.z);
   if (len > 0.0001f)
     {
@@ -173,7 +172,6 @@ engine_init (engine_state_t *state, const engine_config_t *config)
       return RESULT_ERROR (RESULT_ERROR_VULKAN, "Failed to initialize GLFW");
     }
 
-  // Wayland only
   glfwInitHint (GLFW_PLATFORM, GLFW_PLATFORM_WAYLAND);
 
   glfwWindowHint (GLFW_CLIENT_API, GLFW_NO_API);
@@ -191,7 +189,6 @@ engine_init (engine_state_t *state, const engine_config_t *config)
   glfwSetKeyCallback (state->window, glfw_key_callback);
   glfwSetCursorPosCallback (state->window, glfw_mouse_callback);
 
-  // capture mouse
   glfwSetInputMode (state->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
   state->first_mouse = true;
@@ -203,7 +200,6 @@ engine_init (engine_state_t *state, const engine_config_t *config)
   if (result.code != RESULT_OK)
     return result;
 
-  // subsystems
   state->world_manager = world_manager_create ();
   state->event_system = event_system_create ();
   state->resource_manager = resource_manager_create ();
@@ -247,7 +243,6 @@ engine_cleanup (engine_state_t *state)
   printf ("[Engine] Cleaned up\n");
 }
 
-// world and prefabs
 result_t
 engine_load_world (engine_state_t *state, const engine_config_t *config,
                    prefab_system_t **out_prefab_system)
@@ -267,7 +262,6 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
 
   prefab_system_set_directory (prefab_system, config->prefabs_directory);
 
-  // Create world
   state->world_manager->active_world = ecs_world_create ();
   if (!state->world_manager->active_world)
     {
@@ -280,6 +274,7 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
   camera_component_register (state->world_manager->active_world);
   camera_movement_component_register (state->world_manager->active_world);
   camera_rotation_component_register (state->world_manager->active_world);
+  lighting_component_register (state->world_manager->active_world);
   shape_component_register (state->world_manager->active_world);
   physics_component_register (state->world_manager->active_world);
   gui_component_register (state->world_manager->active_world);
@@ -317,7 +312,6 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
   return RESULT_SUCCESS;
 }
 
-// Update camera from camera component
 static void
 update_camera_from_component (engine_state_t *state)
 {
@@ -328,13 +322,12 @@ update_camera_from_component (engine_state_t *state)
       = camera_find_active (state->world_manager->active_world, NULL);
   if (camera)
     {
-      // upd render system camera from camera component
+
       render_system_set_camera (&state->render_system, camera->position,
                                 camera->direction);
     }
 }
 
-// main loop
 void
 engine_run (engine_state_t *state)
 {
@@ -367,7 +360,9 @@ engine_run (engine_state_t *state)
                                         state->world_manager->active_world);
         }
 
-      render_system_render_frame (&state->render_system, (float)current_time);
+      render_system_render_frame (&state->render_system,
+                                  state->world_manager->active_world,
+                                  (float)current_time);
 
       static double last_reload_check = 0;
       if (current_time - last_reload_check > 1.0)

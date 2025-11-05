@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Simple vertex shader for fullscreen quad
 static const char *vert_shader_code
     = "#version 450\n"
       "layout(location = 0) out vec2 fragTexCoord;\n"
@@ -17,7 +16,6 @@ static const char *vert_shader_code
       "    fragTexCoord = texCoords[gl_VertexIndex];\n"
       "}\n";
 
-// Fragment shader to sample from compute output
 static const char *frag_shader_code
     = "#version 450\n"
       "layout(binding = 0) uniform sampler2D texSampler;\n"
@@ -33,7 +31,6 @@ swapchain_create (vulkan_context_t *context, GLFWwindow *window,
 {
   memset (swapchain, 0, sizeof (swapchain_t));
 
-  // Create surface
   VkSurfaceKHR surface;
   if (glfwCreateWindowSurface (context->instance, window, NULL, &surface)
       != VK_SUCCESS)
@@ -42,12 +39,10 @@ swapchain_create (vulkan_context_t *context, GLFWwindow *window,
                            "Failed to create window surface");
     }
 
-  // Get surface capabilities
   VkSurfaceCapabilitiesKHR capabilities;
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR (context->physical_device, surface,
                                              &capabilities);
 
-  // Get surface format
   uint32_t format_count;
   vkGetPhysicalDeviceSurfaceFormatsKHR (context->physical_device, surface,
                                         &format_count, NULL);
@@ -57,7 +52,7 @@ swapchain_create (vulkan_context_t *context, GLFWwindow *window,
                                         &format_count, formats);
 
   VkSurfaceFormatKHR surface_format = formats[0];
-  // Prefer UNORM format to avoid automatic color space conversion
+
   for (uint32_t i = 0; i < format_count; i++)
     {
       if (formats[i].format == VK_FORMAT_B8G8R8A8_UNORM
@@ -67,7 +62,7 @@ swapchain_create (vulkan_context_t *context, GLFWwindow *window,
           break;
         }
     }
-  // Fallback to SRGB if UNORM not available
+
   if (surface_format.format != VK_FORMAT_B8G8R8A8_UNORM)
     {
       for (uint32_t i = 0; i < format_count; i++)
@@ -82,7 +77,6 @@ swapchain_create (vulkan_context_t *context, GLFWwindow *window,
     }
   free (formats);
 
-  // Create swapchain
   VkSwapchainCreateInfoKHR create_info = { 0 };
   create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
   create_info.surface = surface;
@@ -117,14 +111,12 @@ swapchain_create (vulkan_context_t *context, GLFWwindow *window,
   swapchain->extent.width = width;
   swapchain->extent.height = height;
 
-  // Get swapchain images
   vkGetSwapchainImagesKHR (context->device, swapchain->swapchain,
                            &swapchain->image_count, NULL);
   swapchain->images = malloc (swapchain->image_count * sizeof (VkImage));
   vkGetSwapchainImagesKHR (context->device, swapchain->swapchain,
                            &swapchain->image_count, swapchain->images);
 
-  // Create image views
   swapchain->image_views
       = malloc (swapchain->image_count * sizeof (VkImageView));
   for (uint32_t i = 0; i < swapchain->image_count; i++)
@@ -144,7 +136,6 @@ swapchain_create (vulkan_context_t *context, GLFWwindow *window,
                          &swapchain->image_views[i]);
     }
 
-  // Create semaphores
   VkSemaphoreCreateInfo semaphore_info = { 0 };
   semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -180,7 +171,7 @@ result_t
 swapchain_present (vulkan_context_t *context, swapchain_t *swapchain,
                    const gpu_image_t *source_image)
 {
-  // Acquire next image
+
   uint32_t image_index;
   VkResult result = vkAcquireNextImageKHR (
       context->device, swapchain->swapchain, UINT64_MAX,
@@ -196,7 +187,6 @@ swapchain_present (vulkan_context_t *context, swapchain_t *swapchain,
 
   VkCommandBuffer cmd = vulkan_begin_single_time_commands (context);
 
-  // Transition swapchain image to transfer dst
   VkImageMemoryBarrier barrier = { 0 };
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
   barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -214,7 +204,6 @@ swapchain_present (vulkan_context_t *context, swapchain_t *swapchain,
                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1,
                         &barrier);
 
-  // Blit
   VkImageBlit blit = { 0 };
   blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   blit.srcSubresource.layerCount = 1;
@@ -232,7 +221,6 @@ swapchain_present (vulkan_context_t *context, swapchain_t *swapchain,
                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit,
                   VK_FILTER_LINEAR);
 
-  // Transition to present
   barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
   barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
   barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -244,7 +232,6 @@ swapchain_present (vulkan_context_t *context, swapchain_t *swapchain,
 
   vulkan_end_single_time_commands (context, cmd);
 
-  // Present
   VkPresentInfoKHR present_info = { 0 };
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
   present_info.swapchainCount = 1;

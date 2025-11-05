@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <string.h>
 
-// Create camera with default settings
 camera_component_t
 camera_create_default (vec3_t position, vec3_t direction)
 {
@@ -26,7 +25,6 @@ camera_create_default (vec3_t position, vec3_t direction)
   return camera;
 }
 
-// Find active camera in world
 camera_component_t *
 camera_find_active (ecs_world_t *world, entity_id_t *out_entity)
 {
@@ -37,7 +35,6 @@ camera_find_active (ecs_world_t *world, entity_id_t *out_entity)
   if (camera_id == INVALID_ENTITY)
     return NULL;
 
-  // Iterate through all camera components to find active one
   component_array_t *array = NULL;
   for (size_t i = 0; i < world->component_count; i++)
     {
@@ -70,7 +67,6 @@ camera_find_active (ecs_world_t *world, entity_id_t *out_entity)
   return NULL;
 }
 
-// Component lifecycle
 result_t
 camera_component_start (ecs_world_t *world, entity_id_t entity,
                         void *component_data)
@@ -98,9 +94,6 @@ camera_component_update (ecs_world_t *world, entity_id_t entity,
   (void)component_data;
   (void)time;
 
-  // Camera component is now just data, no update logic needed
-  // Movement and rotation are handled by separate components
-
   return RESULT_SUCCESS;
 }
 
@@ -112,9 +105,6 @@ camera_component_render (ecs_world_t *world, entity_id_t entity,
   (void)entity;
   (void)component_data;
 
-  // Camera rendering is handled by render system
-  // This is just a placeholder for future extensions
-
   return RESULT_SUCCESS;
 }
 
@@ -122,10 +112,8 @@ void
 camera_component_destroy (void *component_data)
 {
   (void)component_data;
-  // No dynamic allocations to clean up
 }
 
-// Register component
 void
 camera_component_register (ecs_world_t *world)
 {

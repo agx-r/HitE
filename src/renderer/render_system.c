@@ -1,4 +1,6 @@
 #include "render_system.h"
+#include "../components/camera_component.h"
+#include "../components/lighting_component.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,30 +11,25 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-// Convert shape component to GPU SDF object
 static void
 shape_to_sdf_object (const shape_component_t *shape, sdf_object_t *sdf)
 {
   sdf->position
       = (vec4_t){ shape->transform.position.x, shape->transform.position.y,
-                  shape->transform.position.z,
-                  shape->dimensions.x }; // w = radius/scale
+                  shape->transform.position.z, shape->dimensions.x };
 
   sdf->color = shape->color;
 
-  sdf->dimensions
-      = (vec4_t){ shape->dimensions.x, shape->dimensions.y,
-                  shape->dimensions.z,
-                  (float)shape->type }; // w = type (stored as float)
+  sdf->dimensions = (vec4_t){ shape->dimensions.x, shape->dimensions.y,
+                              shape->dimensions.z, (float)shape->type };
 
-  // For terrain, send seed in params.x; for other shapes, send roughness/smoothing
   if (shape->type == SHAPE_TERRAIN)
     {
-      sdf->params = (vec4_t){ shape->roughness, 0.0f, 0.0f, 0.0f }; // roughness stores seed for terrain
+      sdf->params = (vec4_t){ shape->roughness, 0.0f, 0.0f, 0.0f };
     }
   else
     {
-      // Send common params: x=roughness, y=smoothing (used by other shapes)
+
       sdf->params = (vec4_t){ shape->roughness, shape->smoothing, 0.0f, 0.0f };
     }
 }
@@ -44,13 +41,11 @@ render_system_init (render_system_t *system, vulkan_context_t *vk_context,
   memset (system, 0, sizeof (render_system_t));
   system->window = window;
 
-  // Init raymarcher
   result_t result
       = raymarcher_create (vk_context, width, height, &system->raymarcher);
   if (result.code != RESULT_OK)
     return result;
 
-  // Initialize swapchain
   result = swapchain_create (vk_context, window, width, height,
                              &system->swapchain);
   if (result.code != RESULT_OK)
@@ -59,13 +54,12 @@ render_system_init (render_system_t *system, vulkan_context_t *vk_context,
       return result;
     }
 
-  // Get executable path for relative shader location
-  char exe_path[1024];
+  char exe_path[1024] = { 0 };
   ssize_t len = readlink ("/proc/self/exe", exe_path, sizeof (exe_path) - 1);
   if (len != -1)
     {
       exe_path[len] = '\0';
-      // Remove "/bin/hite" to get install prefix
+
       char *last_slash = strrchr (exe_path, '/');
       if (last_slash)
         {
@@ -92,7 +86,6 @@ render_system_init (render_system_t *system, vulkan_context_t *vk_context,
           = raymarcher_load_shader (&system->raymarcher, shader_paths[i]);
       if (shader_result.code == RESULT_OK)
         {
-          printf ("[Render] Loaded shader: %s\n", shader_paths[i]);
           break;
         }
     }
@@ -103,7 +96,35 @@ render_system_init (render_system_t *system, vulkan_context_t *vk_context,
       return shader_result;
     }
 
-  // Allocate SDF object buffer
+  char lighting_shader_path_buf[1024] = { 0 };
+
+  if (len != -1 && strlen (exe_path) > 0)
+    {
+      snprintf (lighting_shader_path_buf, sizeof (lighting_shader_path_buf),
+                "%s/share/hite/shaders/lighting.comp.spv", exe_path);
+    }
+  else
+    {
+      lighting_shader_path_buf[0] = '\0';
+    }
+
+  const char *lighting_shader_paths[]
+      = { lighting_shader_path_buf[0] ? lighting_shader_path_buf : NULL,
+          "build/shaders/lighting.comp.spv", "shaders/lighting.comp.spv",
+          "../shaders/lighting.comp.spv", NULL };
+
+  shader_result = RESULT_ERROR (RESULT_ERROR_FILE_NOT_FOUND,
+                                "Lighting shader not found");
+  for (int i = 0; lighting_shader_paths[i] != NULL; i++)
+    {
+      shader_result = raymarcher_load_lighting_shader (
+          &system->raymarcher, lighting_shader_paths[i]);
+      if (shader_result.code == RESULT_OK)
+        {
+          break;
+        }
+    }
+
   system->sdf_object_capacity = MAX_SDF_OBJECTS;
   system->sdf_objects
       = calloc (system->sdf_object_capacity, sizeof (sdf_object_t));
@@ -114,11 +135,9 @@ render_system_init (render_system_t *system, vulkan_context_t *vk_context,
                            "Failed to allocate SDF object buffer");
     }
 
-  // Default camera - looking at the scene from above and behind
   system->camera_position = (vec3_t){ 0, 5, 10, 0 };
   system->camera_direction = (vec3_t){ 0, -0.3f, -1, 0 };
 
-  // Normalize direction
   float dir_len
       = sqrtf (system->camera_direction.x * system->camera_direction.x
                + system->camera_direction.y * system->camera_direction.y
@@ -152,7 +171,6 @@ render_system_collect_shapes (render_system_t *system, ecs_world_t *world)
                            "Invalid parameters");
     }
 
-  // Find shape component ID
   component_id_t shape_id = ecs_get_component_id (world, "shape");
   if (shape_id == INVALID_ENTITY)
     {
@@ -160,10 +178,8 @@ render_system_collect_shapes (render_system_t *system, ecs_world_t *world)
                            "Shape component not registered");
     }
 
-  // Reset counter
   system->sdf_object_count = 0;
 
-  // Iterate through all shape components
   component_array_t *shape_array = &world->component_arrays[shape_id];
 
   for (size_t i = 0; i < shape_array->count && i < system->sdf_object_capacity;
@@ -184,20 +200,17 @@ render_system_collect_shapes (render_system_t *system, ecs_world_t *world)
           continue;
         }
 
-      // Convert to GPU format
       shape_to_sdf_object (shape,
                            &system->sdf_objects[system->sdf_object_count]);
       system->sdf_object_count++;
     }
 
-  // Clear remaining slots to mark end of object list
   for (size_t i = system->sdf_object_count; i < system->sdf_object_capacity;
        i++)
     {
       memset (&system->sdf_objects[i], 0, sizeof (sdf_object_t));
     }
 
-  // Upload entire buffer to GPU (including cleared slots for termination)
   result_t result = gpu_buffer_upload (
       system->raymarcher.vk_context, &system->raymarcher.sdf_objects_buffer,
       system->sdf_objects,
@@ -207,17 +220,16 @@ render_system_collect_shapes (render_system_t *system, ecs_world_t *world)
 }
 
 result_t
-render_system_render_frame (render_system_t *system, float time)
+render_system_render_frame (render_system_t *system, ecs_world_t *world,
+                            float time)
 {
   if (!system)
     {
       return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid system");
     }
 
-  // Setup uniforms
   raymarch_uniforms_t uniforms = { 0 };
 
-  // Identity matrices (simplified - should use proper math library)
   for (int i = 0; i < 4; i++)
     {
       uniforms.view_matrix.rows[i].x = (i == 0) ? 1.0f : 0.0f;
@@ -240,19 +252,73 @@ render_system_render_frame (render_system_t *system, float time)
                                   (float)system->raymarcher.height, 0, 0 };
 
   uniforms.time = time;
-  // Clamp object count to max buffer size for safety
+
   uniforms.object_count = (system->sdf_object_count > MAX_SDF_OBJECTS)
                               ? MAX_SDF_OBJECTS
                               : system->sdf_object_count;
 
-  // Execute raymarching
   result_t result = raymarcher_execute (&system->raymarcher, &uniforms);
   if (result.code != RESULT_OK)
     return result;
 
-  // Present to screen
-  return swapchain_present (system->raymarcher.vk_context, &system->swapchain,
-                            raymarcher_get_output (&system->raymarcher));
+  entity_id_t camera_entity = INVALID_ENTITY;
+  camera_component_t *camera = NULL;
+  lighting_component_t *lighting = NULL;
+
+  if (world)
+    {
+      camera = camera_find_active (world, &camera_entity);
+      if (camera_entity != INVALID_ENTITY)
+        {
+          lighting = lighting_find_on_camera (world, camera_entity);
+        }
+    }
+
+  if (lighting && lighting->enabled && system->raymarcher.lighting_pipeline)
+    {
+      lighting_uniforms_t lighting_uniforms = { 0 };
+
+      lighting_uniforms.sun_direction
+          = (vec4_t){ lighting->sun_direction.x, lighting->sun_direction.y,
+                      lighting->sun_direction.z, 0 };
+      lighting_uniforms.sun_color
+          = (vec4_t){ lighting->sun_color.x, lighting->sun_color.y,
+                      lighting->sun_color.z, 0 };
+      lighting_uniforms.camera_position
+          = (vec4_t){ system->camera_position.x, system->camera_position.y,
+                      system->camera_position.z, 0 };
+      lighting_uniforms.camera_direction
+          = (vec4_t){ system->camera_direction.x, system->camera_direction.y,
+                      system->camera_direction.z, 0 };
+      lighting_uniforms.resolution
+          = (vec2_t){ (float)system->raymarcher.width,
+                      (float)system->raymarcher.height, 0, 0 };
+      lighting_uniforms.ambient_strength = lighting->ambient_strength;
+      lighting_uniforms.diffuse_strength = lighting->diffuse_strength;
+      lighting_uniforms.shadow_bias = lighting->shadow_bias;
+      lighting_uniforms.shadow_softness = lighting->shadow_softness;
+      lighting_uniforms.shadow_steps = (uint32_t)lighting->shadow_steps;
+      lighting_uniforms.object_count
+          = (system->sdf_object_count > MAX_SDF_OBJECTS)
+                ? MAX_SDF_OBJECTS
+                : system->sdf_object_count;
+
+      result = raymarcher_execute_lighting (&system->raymarcher,
+                                            &lighting_uniforms);
+      if (result.code != RESULT_OK)
+        return result;
+
+      return swapchain_present (system->raymarcher.vk_context,
+                                &system->swapchain,
+                                raymarcher_get_final (&system->raymarcher));
+    }
+  else
+    {
+
+      return swapchain_present (
+          system->raymarcher.vk_context, &system->swapchain,
+          raymarcher_get_color_depth (&system->raymarcher));
+    }
 }
 
 void
@@ -283,7 +349,6 @@ render_system_rotate_camera (render_system_t *system, float yaw, float pitch)
   if (!system)
     return;
 
-  // Simple rotation (should use proper quaternions)
   float cos_yaw = cosf (yaw);
   float sin_yaw = sinf (yaw);
   float cos_pitch = cosf (pitch);

@@ -2,7 +2,6 @@
 #define RAYMARCH_CORE_GLSL
 
 #include "shapes/registry.glsl"
-#include "lighting.glsl"
 
 // Raymarching constants
 const int MAX_STEPS = 128;
@@ -43,10 +42,17 @@ vec3 calculate_normal(vec3 p) {
   );
 }
 
+// Raymarch result structure
+struct RaymarchResult {
+  vec4 color;      // RGB = surface color, A = depth
+  vec4 normal_pos; // RGB = normal (normalized), A = hit flag (1.0 = hit, 0.0 = miss)
+};
+
 // Main raymarching loop
-vec4 raymarch(vec3 ro, vec3 rd, vec3 camera_pos) {
+RaymarchResult raymarch(vec3 ro, vec3 rd, vec3 camera_pos) {
   float depth = 0.0;
   vec4 color = vec4(0.0);
+  RaymarchResult result;
 
   for (int i = 0; i < MAX_STEPS; i++) {
     vec3 p = ro + rd * depth;
@@ -54,8 +60,13 @@ vec4 raymarch(vec3 ro, vec3 rd, vec3 camera_pos) {
 
     if (dist < EPSILON) {
       vec3 normal = calculate_normal(p);
-      vec3 lit_color = apply_lighting(p, normal, color.rgb, camera_pos);
-      return vec4(lit_color, 1.0);
+      vec3 hit_pos = p;
+      // Return color without lighting - lighting will be applied in post-pass
+      // Store depth in color.a
+      result.color = vec4(color.rgb, depth);
+      // Store normal in RGB, hit flag in A
+      result.normal_pos = vec4(normal * 0.5 + 0.5, 1.0); // Normalize to 0..1 range
+      return result;
     }
 
     depth += dist;
@@ -65,7 +76,9 @@ vec4 raymarch(vec3 ro, vec3 rd, vec3 camera_pos) {
   // Background gradient
   float t = rd.y * 0.5 + 0.5;
   vec3 bg = mix(vec3(0.06, 0.06, 0.06), vec3(0.1, 0.1, 0.1), t);
-  return vec4(bg, 1.0);
+  result.color = vec4(bg, MAX_DIST);
+  result.normal_pos = vec4(0.5, 0.5, 1.0, 0.0); // No hit
+  return result;
 }
 
 #endif

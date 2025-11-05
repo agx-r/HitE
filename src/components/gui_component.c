@@ -5,8 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 
-// THIS COMPONENT IS NOT READY ! TODO !
-
 result_t
 gui_component_start (ecs_world_t *world, entity_id_t entity,
                      void *component_data)
@@ -44,10 +42,9 @@ gui_component_update (ecs_world_t *world, entity_id_t entity,
 
   gui_component_t *gui = (gui_component_t *)component_data;
 
-  // Verify camera is still valid
   if (!ecs_entity_is_valid (world, gui->camera_entity))
     {
-      // Try to find a new active camera
+
       entity_id_t camera_entity = INVALID_ENTITY;
       camera_component_t *camera = camera_find_active (world, &camera_entity);
 
@@ -78,9 +75,6 @@ gui_component_render (ecs_world_t *world, entity_id_t entity,
   if (!gui->enabled)
     return RESULT_SUCCESS;
 
-  // TODO the rendering will be here
-  // TODO for now just printf
-
   return RESULT_SUCCESS;
 }
 
@@ -88,21 +82,17 @@ void
 gui_component_destroy (void *component_data)
 {
   (void)component_data;
-  // No dynamic allocations to clean up
 }
 
-// Register component
 void
 gui_component_register (ecs_world_t *world)
 {
   static const char *dependencies[] = { "camera", NULL };
-  REGISTER_COMPONENT (world, "gui", gui_component_t,
-                      gui_component_start, gui_component_update,
-                      gui_component_render, gui_component_destroy,
-                      "GUI", 64, dependencies);
+  REGISTER_COMPONENT (world, "gui", gui_component_t, gui_component_start,
+                      gui_component_update, gui_component_render,
+                      gui_component_destroy, "GUI", 64, dependencies);
 }
 
-// helpers
 result_t
 gui_add_text (gui_component_t *gui, const char *text, float x, float y,
               float size, vec4_t color)

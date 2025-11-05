@@ -16,7 +16,8 @@ layout (binding = 0) uniform Uniforms
 }
 ubo;
 
-layout (binding = 1, rgba8) uniform writeonly image2D output_image;
+layout (binding = 1, rgba32f) uniform writeonly image2D output_color_depth;
+layout (binding = 3, rgba32f) uniform writeonly image2D output_normal;
 
 struct SDFObject
 {
@@ -58,9 +59,11 @@ void main() {
   vec3 rd = normalize(forward + uv.x * right * fov + uv.y * up * fov);
 
   // Raymarch
-  vec4 color = raymarch(ro, rd, ubo.camera_position.xyz);
+  RaymarchResult result = raymarch(ro, rd, ubo.camera_position.xyz);
   
-  // Convert to sRGB and write
-  color.rgb = linear_to_srgb(color.rgb);
-  imageStore(output_image, pixel_coords, color);
+  // Write color and depth
+  imageStore(output_color_depth, pixel_coords, result.color);
+  
+  // Write normal (already in 0..1 range)
+  imageStore(output_normal, pixel_coords, result.normal_pos);
 }

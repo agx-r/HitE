@@ -7,42 +7,36 @@
 #include "swapchain.h"
 #include <GLFW/glfw3.h>
 
-// Render system - bridges ECS and GPU raymarcher
 typedef struct
 {
   raymarcher_t raymarcher;
   swapchain_t swapchain;
   GLFWwindow *window;
 
-  // Camera state
   vec3_t camera_position;
   vec3_t camera_direction;
   float camera_fov;
 
-  // Collected shapes from ECS
   sdf_object_t *sdf_objects;
   size_t sdf_object_count;
   size_t sdf_object_capacity;
 } render_system_t;
 
-// Initialize render system
 result_t render_system_init (render_system_t *system,
                              vulkan_context_t *vk_context, GLFWwindow *window,
                              uint32_t width, uint32_t height);
 void render_system_cleanup (render_system_t *system);
 
-// Collect shapes from ECS world and upload to GPU
 result_t render_system_collect_shapes (render_system_t *system,
                                        ecs_world_t *world);
 
-// Render frame
-result_t render_system_render_frame (render_system_t *system, float time);
+result_t render_system_render_frame (render_system_t *system,
+                                     ecs_world_t *world, float time);
 
-// Camera control
 void render_system_set_camera (render_system_t *system, vec3_t position,
                                vec3_t direction);
 void render_system_move_camera (render_system_t *system, vec3_t delta);
 void render_system_rotate_camera (render_system_t *system, float yaw,
                                   float pitch);
 
-#endif // HITE_RENDER_SYSTEM_H
+#endif

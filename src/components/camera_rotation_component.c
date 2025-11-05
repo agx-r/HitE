@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <string.h>
 
-// Create default camera rotation
 camera_rotation_component_t
 camera_rotation_create_default (float yaw, float pitch)
 {
@@ -27,7 +26,6 @@ camera_rotation_create_default (float yaw, float pitch)
   return rotation;
 }
 
-// Process mouse movement
 void
 camera_rotation_process_mouse (camera_rotation_component_t *rotation,
                                double xpos, double ypos)
@@ -51,17 +49,15 @@ camera_rotation_process_mouse (camera_rotation_component_t *rotation,
   xoffset *= rotation->look_sensitivity;
   yoffset *= rotation->look_sensitivity;
 
-  rotation->yaw += xoffset; // Inverted X rotation
+  rotation->yaw += xoffset;
   rotation->pitch -= yoffset;
 
-  // Constrain pitch
   if (rotation->pitch > rotation->max_pitch)
     rotation->pitch = rotation->max_pitch;
   if (rotation->pitch < rotation->min_pitch)
     rotation->pitch = rotation->min_pitch;
 }
 
-// Component lifecycle
 result_t
 camera_rotation_component_start (ecs_world_t *world, entity_id_t entity,
                                  void *component_data)
@@ -88,7 +84,6 @@ camera_rotation_component_update (ecs_world_t *world, entity_id_t entity,
   if (!rotation->enabled)
     return RESULT_SUCCESS;
 
-  // Update camera component direction from rotation
   component_id_t camera_id = ecs_get_component_id (world, "camera");
   if (camera_id == INVALID_ENTITY)
     return RESULT_SUCCESS;
@@ -97,12 +92,11 @@ camera_rotation_component_update (ecs_world_t *world, entity_id_t entity,
       = (camera_component_t *)ecs_get_component (world, entity, camera_id);
   if (camera)
     {
-      // Calculate direction from yaw and pitch
+
       camera->direction.x = cosf (rotation->yaw) * cosf (rotation->pitch);
       camera->direction.y = sinf (rotation->pitch);
       camera->direction.z = sinf (rotation->yaw) * cosf (rotation->pitch);
 
-      // Normalize direction
       float len = sqrtf (camera->direction.x * camera->direction.x
                          + camera->direction.y * camera->direction.y
                          + camera->direction.z * camera->direction.z);
@@ -123,12 +117,11 @@ camera_rotation_component_destroy (void *component_data)
   (void)component_data;
 }
 
-// Register component
 void
 camera_rotation_component_register (ecs_world_t *world)
 {
-  REGISTER_COMPONENT (world, "camera_rotation", camera_rotation_component_t,
-                      camera_rotation_component_start, camera_rotation_component_update,
-                      NULL, camera_rotation_component_destroy,
-                      "Camera Rotation", 64, NULL);
+  REGISTER_COMPONENT (
+      world, "camera_rotation", camera_rotation_component_t,
+      camera_rotation_component_start, camera_rotation_component_update, NULL,
+      camera_rotation_component_destroy, "Camera Rotation", 64, NULL);
 }

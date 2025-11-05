@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Initialize TinyScheme interpreter
 scheme_state_t *
 hite_scheme_init (void)
 {
@@ -24,17 +23,11 @@ hite_scheme_init (void)
   scheme_set_input_port_file (state->sc, stdin);
   scheme_set_output_port_file (state->sc, stdout);
 
-  // Load init.scm for basic functionality
-  // Note: TinyScheme needs init.scm for many built-in functions
-  // For now, we'll skip it as we only need basic read/eval
-  // If init.scm is needed, load it from a known path
-
   printf ("[TinyScheme] Initialized (version 1.42)\n");
 
   return state;
 }
 
-// Shutdown TinyScheme interpreter
 void
 hite_scheme_shutdown (scheme_state_t *state)
 {
@@ -50,7 +43,6 @@ hite_scheme_shutdown (scheme_state_t *state)
   free (state);
 }
 
-// Load and READ (not evaluate) Scheme file
 result_t
 hite_scheme_load_file (scheme_state_t *state, const char *filepath,
                        pointer *out_result)
@@ -58,7 +50,6 @@ hite_scheme_load_file (scheme_state_t *state, const char *filepath,
   if (!state || !state->sc || !filepath)
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
 
-  // Open and read file
   FILE *file = fopen (filepath, "r");
   if (!file)
     {
@@ -83,8 +74,6 @@ hite_scheme_load_file (scheme_state_t *state, const char *filepath,
   source[bytes_read] = '\0';
   fclose (file);
 
-  // Use scheme_load_string with a wrapper that quotes the expression
-  // Build: (quote <content>)
   char *wrapper = malloc (strlen (source) + 20);
   if (!wrapper)
     {
@@ -95,10 +84,8 @@ hite_scheme_load_file (scheme_state_t *state, const char *filepath,
 
   sprintf (wrapper, "(quote %s)", source);
 
-  // Load and evaluate the quoted expression
   scheme_load_string (state->sc, wrapper);
 
-  // Get the result - it will be the quoted data structure
   pointer result = state->sc->value;
 
   free (wrapper);
@@ -110,7 +97,6 @@ hite_scheme_load_file (scheme_state_t *state, const char *filepath,
   return RESULT_SUCCESS;
 }
 
-// Evaluate Scheme string
 result_t
 hite_scheme_eval_string (scheme_state_t *state, const char *source,
                          pointer *out_result)
@@ -127,14 +113,12 @@ hite_scheme_eval_string (scheme_state_t *state, const char *source,
   return RESULT_SUCCESS;
 }
 
-// Type checking wrappers
 bool
 scheme_is_list_wrapper (scheme_state_t *state, pointer obj)
 {
   if (!state || !obj)
     return false;
 
-  // In TinyScheme, a list is either NIL or a pair
   if (obj == state->sc->NIL)
     return true;
 
@@ -187,7 +171,6 @@ scheme_is_null_wrapper (scheme_state_t *state, pointer obj)
   return (obj == state->sc->NIL);
 }
 
-// Value extraction wrappers
 const char *
 scheme_symbol_name_wrapper (scheme_state_t *state, pointer obj)
 {
@@ -222,7 +205,6 @@ scheme_boolean_wrapper (scheme_state_t *state, pointer obj)
   return (obj != state->sc->F);
 }
 
-// List operations wrappers
 pointer
 scheme_car_wrapper (scheme_state_t *state, pointer obj)
 {
@@ -264,20 +246,17 @@ scheme_list_ref_wrapper (scheme_state_t *state, pointer obj, int index)
   return state->sc->NIL;
 }
 
-// Find field in list like (field-name value...)
 pointer
 scheme_find_field (scheme_state_t *state, pointer list, const char *field_name)
 {
   if (!state || !list || !field_name)
     return NULL;
 
-  // Iterate through list
   pointer current = list;
   while (is_pair (current))
     {
       pointer elem = pair_car (current);
 
-      // Check if element is a list starting with field_name
       if (is_pair (elem))
         {
           pointer name = pair_car (elem);
@@ -286,7 +265,7 @@ scheme_find_field (scheme_state_t *state, pointer list, const char *field_name)
               const char *sym_name = symname (name);
               if (strcmp (sym_name, field_name) == 0)
                 {
-                  return elem; // Return entire field list
+                  return elem;
                 }
             }
         }
@@ -297,7 +276,6 @@ scheme_find_field (scheme_state_t *state, pointer list, const char *field_name)
   return NULL;
 }
 
-// Parse vec3 from list like (x y z)
 result_t
 scheme_parse_vec3 (scheme_state_t *state, pointer obj, vec3_t *out)
 {
@@ -329,7 +307,6 @@ scheme_parse_vec3 (scheme_state_t *state, pointer obj, vec3_t *out)
   return RESULT_SUCCESS;
 }
 
-// Parse vec4 from list like (r g b a)
 result_t
 scheme_parse_vec4 (scheme_state_t *state, pointer obj, vec4_t *out)
 {
@@ -363,7 +340,6 @@ scheme_parse_vec4 (scheme_state_t *state, pointer obj, vec4_t *out)
   return RESULT_SUCCESS;
 }
 
-// Parse float from number
 result_t
 scheme_parse_float (scheme_state_t *state, pointer obj, float *out)
 {
@@ -378,7 +354,6 @@ scheme_parse_float (scheme_state_t *state, pointer obj, float *out)
   return RESULT_SUCCESS;
 }
 
-// Parse bool from boolean
 result_t
 scheme_parse_bool (scheme_state_t *state, pointer obj, bool *out)
 {

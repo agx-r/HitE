@@ -1,9 +1,7 @@
-;; Camera prefab - entity with movement and rotation
 (prefab
   (name "camera")
   (description "Camera entity with movement and rotation components")
   
-  ;; Position, direction, fov
   (component "camera"
     (position 0 0 0)
     (direction 0 -0.3 1)
@@ -13,16 +11,13 @@
     (far-plane 1000.0)
     (active #t))
   
-  ;; Movement
   (component "camera_movement"
     (move-speed 10.0)
     (enabled #t))
 
-  ;; Devcam
   (component "gui")
   (component "developer_overlay")
   
-  ;; Rotation
   (component "camera_rotation"
     (yaw -3.14159)
     (pitch -0.3)
@@ -30,4 +25,14 @@
     (max-pitch 1.5)
     (min-pitch -1.5)
     (mouse-captured #t)
+    (enabled #t))
+  
+  (component "lighting"
+    (sun-direction 0.3 0.8 0.5)
+    (sun-color 1.0 0.95 0.8)
+    (ambient-strength 0.15)
+    (diffuse-strength 0.85)
+    (shadow-bias 0.05)
+    (shadow-softness 0.3)
+    (shadow-steps 48)
     (enabled #t)))

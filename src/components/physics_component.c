@@ -1,6 +1,6 @@
 #include "physics_component.h"
-#include "shape_component.h"
 #include "component_registry.h"
+#include "shape_component.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -17,7 +17,6 @@ physics_component_start (ecs_world_t *world, entity_id_t entity,
 
   physics_component_t *physics = (physics_component_t *)component_data;
 
-  // Set defaults
   if (physics->mass == 0.0f)
     {
       physics->mass = 1.0f;
@@ -44,18 +43,15 @@ physics_component_update (ecs_world_t *world, entity_id_t entity,
 
   float dt = time->delta_time;
 
-  // Apply gravity
   if (physics->gravity_enabled)
     {
       physics->acceleration.y += GRAVITY;
     }
 
-  // Update velocity
   physics->velocity.x += physics->acceleration.x * dt;
   physics->velocity.y += physics->acceleration.y * dt;
   physics->velocity.z += physics->acceleration.z * dt;
 
-  // Apply drag
   float drag_factor = 1.0f - physics->drag * dt;
   if (drag_factor < 0.0f)
     drag_factor = 0.0f;
@@ -64,7 +60,6 @@ physics_component_update (ecs_world_t *world, entity_id_t entity,
   physics->velocity.y *= drag_factor;
   physics->velocity.z *= drag_factor;
 
-  // Get shape component to update position
   component_id_t shape_id = ecs_get_component_id (world, "shape");
   if (shape_id != INVALID_ENTITY)
     {
@@ -80,7 +75,6 @@ physics_component_update (ecs_world_t *world, entity_id_t entity,
         }
     }
 
-  // Reset acceleration
   physics->acceleration = (vec3_t){ 0, 0, 0, 0 };
 
   return RESULT_SUCCESS;
@@ -90,16 +84,15 @@ void
 physics_component_destroy (void *component_data)
 {
   (void)component_data;
-  // Nothing to cleanup
 }
 
 void
 physics_component_register (ecs_world_t *world)
 {
   REGISTER_COMPONENT (world, "physics", physics_component_t,
-                      physics_component_start, physics_component_update,
-                      NULL, physics_component_destroy,
-                      "Physics", 64, physics_dependencies);
+                      physics_component_start, physics_component_update, NULL,
+                      physics_component_destroy, "Physics", 64,
+                      physics_dependencies);
 }
 
 void

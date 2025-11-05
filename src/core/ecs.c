@@ -5,7 +5,6 @@
 
 #define INITIAL_COMPONENT_CAPACITY 1024
 
-// Helper: Aligned allocation
 static void *
 aligned_alloc_wrapper (size_t alignment, size_t size)
 {
@@ -17,7 +16,6 @@ aligned_alloc_wrapper (size_t alignment, size_t size)
   return ptr;
 }
 
-// World creation
 ecs_world_t *
 ecs_world_create (void)
 {
@@ -53,7 +51,6 @@ ecs_world_destroy (ecs_world_t *world)
   if (!world)
     return;
 
-  // Cleanup component arrays
   for (size_t i = 0; i < world->component_count; i++)
     {
       component_array_t *array = &world->component_arrays[i];
@@ -79,7 +76,6 @@ ecs_world_destroy (ecs_world_t *world)
   free (world);
 }
 
-// Component registration
 result_t
 ecs_register_component (ecs_world_t *world,
                         const component_descriptor_t *descriptor,
@@ -97,7 +93,6 @@ ecs_register_component (ecs_world_t *world,
                            "Max component types reached");
     }
 
-  // Check for duplicates
   for (size_t i = 0; i < world->component_count; i++)
     {
       if (strcmp (world->component_arrays[i].descriptor.name, descriptor->name)
@@ -127,7 +122,6 @@ ecs_register_component (ecs_world_t *world,
                            "Failed to allocate component storage");
     }
 
-  // Add to lookup
   world->component_lookup.names[id] = descriptor->name;
   world->component_lookup.ids[id] = id;
   world->component_lookup.count++;
@@ -153,7 +147,6 @@ ecs_get_component_id (const ecs_world_t *world, const char *name)
   return INVALID_ENTITY;
 }
 
-// Entity management
 entity_id_t
 ecs_entity_create (ecs_world_t *world)
 {
@@ -182,7 +175,6 @@ ecs_entity_destroy (ecs_world_t *world, entity_id_t entity)
   if (!world || !ecs_entity_is_valid (world, entity))
     return;
 
-  // Remove all components
   for (size_t i = 0; i < world->component_count; i++)
     {
       ecs_remove_component (world, entity, i);
@@ -197,7 +189,6 @@ ecs_entity_is_valid (const ecs_world_t *world, entity_id_t entity)
   return world && entity < MAX_ENTITIES && world->entity_versions[entity] > 0;
 }
 
-// Component operations
 result_t
 ecs_add_component (ecs_world_t *world, entity_id_t entity,
                    component_id_t component_id, const void *initial_data)
@@ -211,7 +202,6 @@ ecs_add_component (ecs_world_t *world, entity_id_t entity,
 
   component_array_t *array = &world->component_arrays[component_id];
 
-  // Check if already has component
   for (size_t i = 0; i < array->count; i++)
     {
       if (array->entities[i] == entity && array->active[i])
@@ -221,7 +211,6 @@ ecs_add_component (ecs_world_t *world, entity_id_t entity,
         }
     }
 
-  // Check dependencies
   if (array->descriptor.dependencies)
     {
       for (size_t i = 0; array->descriptor.dependencies[i] != NULL; i++)
@@ -239,7 +228,6 @@ ecs_add_component (ecs_world_t *world, entity_id_t entity,
         }
     }
 
-  // Grow if needed
   if (array->count >= array->capacity)
     {
       size_t new_capacity = array->capacity * 2;
@@ -269,7 +257,6 @@ ecs_add_component (ecs_world_t *world, entity_id_t entity,
       array->capacity = new_capacity;
     }
 
-  // Add component
   size_t index = array->count++;
   array->entities[index] = entity;
   array->active[index] = true;
@@ -285,7 +272,6 @@ ecs_add_component (ecs_world_t *world, entity_id_t entity,
       memset (component_data, 0, array->descriptor.data_size);
     }
 
-  // Call start
   if (array->descriptor.start)
     {
       result_t result
@@ -371,7 +357,6 @@ ecs_has_component (const ecs_world_t *world, entity_id_t entity,
   return false;
 }
 
-// System execution
 result_t
 ecs_system_start (ecs_world_t *world)
 {

@@ -6,7 +6,6 @@
 
 #define MAX_RESOURCES 1024
 
-// Resource types
 typedef enum
 {
   RESOURCE_SHADER,
@@ -15,7 +14,6 @@ typedef enum
   RESOURCE_NOISE,
 } resource_type_t;
 
-// Resource handle
 typedef struct
 {
   resource_id_t id;
@@ -23,15 +21,12 @@ typedef struct
   void *data;
   size_t size;
 
-  // For hot reload
   char *file_path;
   time_t last_modified;
 
-  // Reference counting
   uint32_t ref_count;
 } resource_t;
 
-// Resource manager
 typedef struct
 {
   resource_t *resources;
@@ -40,7 +35,6 @@ typedef struct
 
   resource_id_t next_id;
 
-  // Cache
   struct
   {
     resource_id_t *ids;
@@ -49,25 +43,20 @@ typedef struct
   } path_cache;
 } resource_manager_t;
 
-// Resource management
 resource_manager_t *resource_manager_create (void);
 void resource_manager_destroy (resource_manager_t *manager);
 
-// Load resource
 result_t resource_load (resource_manager_t *manager, const char *path,
                         resource_type_t type, resource_id_t *out_id);
 
-// Get resource
 resource_t *resource_get (resource_manager_t *manager, resource_id_t id);
 resource_t *resource_get_by_path (resource_manager_t *manager,
                                   const char *path);
 
-// Reference counting
 void resource_acquire (resource_manager_t *manager, resource_id_t id);
 void resource_release (resource_manager_t *manager, resource_id_t id);
 
-// Hot reload
 result_t resource_check_reload (resource_manager_t *manager);
 result_t resource_reload (resource_manager_t *manager, resource_id_t id);
 
-#endif // HITE_RESOURCES_H
+#endif

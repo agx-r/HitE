@@ -5,7 +5,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// Basic types
 typedef uint32_t entity_id_t;
 typedef uint32_t component_id_t;
 typedef uint64_t resource_id_t;
@@ -14,12 +13,10 @@ typedef uint64_t resource_id_t;
 #define MAX_ENTITIES 65536
 #define MAX_COMPONENT_TYPES 256
 
-// Alignment macros for SIMD and GPU
 #define ALIGN_16 __attribute__ ((aligned (16)))
 #define ALIGN_32 __attribute__ ((aligned (32)))
 #define ALIGN_64 __attribute__ ((aligned (64)))
 
-// Math types aligned for GPU/SIMD
 typedef struct
 {
   float x, y, z, w;
@@ -44,12 +41,11 @@ typedef struct
 
 typedef struct
 {
-  vec4_t rotation; // quaternion
+  vec4_t rotation;
   vec3_t position;
   vec3_t scale;
 } ALIGN_64 transform_t;
 
-// Time info
 typedef struct
 {
   double current_time;
@@ -58,7 +54,6 @@ typedef struct
   uint64_t frame_count;
 } time_info_t;
 
-// Result type for error handling
 typedef enum
 {
   RESULT_OK = 0,
@@ -80,4 +75,4 @@ typedef struct
 #define RESULT_SUCCESS ((result_t){ RESULT_OK, NULL })
 #define RESULT_ERROR(code, msg) ((result_t){ code, msg })
 
-#endif // HITE_TYPES_H
+#endif

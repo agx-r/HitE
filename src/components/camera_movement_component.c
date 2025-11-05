@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <string.h>
 
-// Create default camera movement
 camera_movement_component_t
 camera_movement_create_default (void)
 {
@@ -20,7 +19,6 @@ camera_movement_create_default (void)
   return movement;
 }
 
-// Process key input
 void
 camera_movement_process_key (camera_movement_component_t *movement, int key,
                              int action)
@@ -37,7 +35,6 @@ camera_movement_process_key (camera_movement_component_t *movement, int key,
     }
 }
 
-// Component lifecycle
 result_t
 camera_movement_component_start (ecs_world_t *world, entity_id_t entity,
                                  void *component_data)
@@ -62,7 +59,6 @@ camera_movement_component_update (ecs_world_t *world, entity_id_t entity,
   if (!movement->enabled)
     return RESULT_SUCCESS;
 
-  // Get camera component
   component_id_t camera_id = ecs_get_component_id (world, "camera");
   if (camera_id == INVALID_ENTITY)
     return RESULT_SUCCESS;
@@ -77,12 +73,10 @@ camera_movement_component_update (ecs_world_t *world, entity_id_t entity,
   vec3_t forward = camera->direction;
   vec3_t right;
 
-  // Calculate right vector (perpendicular to forward and up)
   right.x = -forward.z;
   right.y = 0;
   right.z = forward.x;
 
-  // Normalize right vector
   float len = sqrtf (right.x * right.x + right.z * right.z);
   if (len > 0.0001f)
     {
@@ -90,7 +84,6 @@ camera_movement_component_update (ecs_world_t *world, entity_id_t entity,
       right.z /= len;
     }
 
-  // Process input and update camera position
   if (movement->keys[GLFW_KEY_W])
     {
       camera->position.x += forward.x * speed;
@@ -131,12 +124,11 @@ camera_movement_component_destroy (void *component_data)
   (void)component_data;
 }
 
-// Register component
 void
 camera_movement_component_register (ecs_world_t *world)
 {
-  REGISTER_COMPONENT (world, "camera_movement", camera_movement_component_t,
-                      camera_movement_component_start, camera_movement_component_update,
-                      NULL, camera_movement_component_destroy,
-                      "Camera Movement", 64, NULL);
+  REGISTER_COMPONENT (
+      world, "camera_movement", camera_movement_component_t,
+      camera_movement_component_start, camera_movement_component_update, NULL,
+      camera_movement_component_destroy, "Camera Movement", 64, NULL);
 }

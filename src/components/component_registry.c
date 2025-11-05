@@ -1,10 +1,12 @@
 #include "component_registry.h"
 
 void
-register_component_helper (ecs_world_t *world, const char *name, size_t data_size,
-                           size_t alignment, const char **dependencies,
-                           component_start_fn start, component_update_fn update,
-                           component_render_fn render, component_destroy_fn destroy,
+register_component_helper (ecs_world_t *world, const char *name,
+                           size_t data_size, size_t alignment,
+                           const char **dependencies, component_start_fn start,
+                           component_update_fn update,
+                           component_render_fn render,
+                           component_destroy_fn destroy,
                            const char *display_name)
 {
   component_descriptor_t desc = { 0 };
@@ -22,8 +24,8 @@ register_component_helper (ecs_world_t *world, const char *name, size_t data_siz
 
   if (result.code == RESULT_OK)
     {
-      printf ("[%s] %s component registered (ID: %u)\n", display_name, display_name,
-              id);
+      printf ("[%s] %s component registered (ID: %u)\n", display_name,
+              display_name, id);
     }
   else
     {

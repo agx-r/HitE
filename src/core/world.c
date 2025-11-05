@@ -48,7 +48,6 @@ world_load (world_manager_t *manager, const world_definition_t *definition,
                            "Invalid parameters");
     }
 
-  // Use existing world if available, otherwise create new one
   ecs_world_t *world = manager->active_world;
   if (!world)
     {
@@ -60,13 +59,8 @@ world_load (world_manager_t *manager, const world_definition_t *definition,
         }
     }
 
-  // Set time configuration
   world->time.fixed_delta_time = definition->fixed_delta_time;
 
-  // All entities are now defined in the world file or loaded from prefabs
-  // No separate C generators needed
-
-  // Instantiate entity templates (only entities declared in world file)
   if (definition->entity_templates && definition->entity_template_count > 0)
     {
       result_t result = world_instantiate_templates (
@@ -79,7 +73,6 @@ world_load (world_manager_t *manager, const world_definition_t *definition,
         }
     }
 
-  // Set active world (don't destroy if we're reusing it)
   if (manager->active_world != world && manager->active_world)
     {
       ecs_world_destroy (manager->active_world);
@@ -88,7 +81,6 @@ world_load (world_manager_t *manager, const world_definition_t *definition,
   manager->active_world = world;
   manager->current_definition = (world_definition_t *)definition;
 
-  // Call start on all components
   result_t result = ecs_system_start (world);
   if (result.code != RESULT_OK)
     {
@@ -114,7 +106,6 @@ world_instantiate_templates (ecs_world_t *world,
       const entity_template_t *tmpl = &templates[i];
       entity_id_t entity = INVALID_ENTITY;
 
-      // If template references a prefab, instantiate it first
       if (tmpl->prefab_name)
         {
           if (!prefab_system)
@@ -148,7 +139,7 @@ world_instantiate_templates (ecs_world_t *world,
         }
       else
         {
-          // Create empty entity for inline components
+
           entity = ecs_entity_create (world);
           if (entity == INVALID_ENTITY)
             {
@@ -157,7 +148,6 @@ world_instantiate_templates (ecs_world_t *world,
             }
         }
 
-      // Add/override components from template
       for (size_t j = 0; j < tmpl->component_count; j++)
         {
           const char *comp_name = tmpl->components[j].component_name;
@@ -171,17 +161,15 @@ world_instantiate_templates (ecs_world_t *world,
               continue;
             }
 
-          // Check if component already exists (from prefab)
           void *existing = ecs_get_component (world, entity, comp_id);
           if (existing)
             {
-              // Component exists from prefab - apply partial override
+
               if (tmpl->components[j].sexp)
                 {
-                  // Partial override: apply only specified fields from
-                  // S-expression
-                  // Use the same scheme state that was used to load the world
-                  scheme_state_t *world_state = world_loader_get_scheme_state ();
+
+                  scheme_state_t *world_state
+                      = world_loader_get_scheme_state ();
                   if (world_state)
                     {
                       apply_component_override (world_state, comp_name,
@@ -196,13 +184,13 @@ world_instantiate_templates (ecs_world_t *world,
                 }
               else if (comp_data)
                 {
-                  // Full override with parsed data
+
                   memcpy (existing, comp_data, tmpl->components[j].data_size);
                 }
             }
           else
             {
-              // Component doesn't exist - add new component
+
               if (comp_data)
                 {
                   result_t result
@@ -230,7 +218,7 @@ result_t
 world_switch (world_manager_t *manager, const world_definition_t *definition,
               prefab_system_t *prefab_system)
 {
-  // Same as load for now, but could add transition logic
+
   return world_load (manager, definition, prefab_system);
 }
 
@@ -244,11 +232,9 @@ world_update (world_manager_t *manager, float delta_time)
 
   ecs_world_t *world = manager->active_world;
 
-  // Update time
   world->time.delta_time = delta_time;
   world->time.current_time += delta_time;
   world->time.frame_count++;
 
-  // Update systems
   return ecs_system_update (world);
 }

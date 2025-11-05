@@ -94,7 +94,6 @@ resource_load (resource_manager_t *manager, const char *path,
                            "Invalid parameters");
     }
 
-  // Check if already loaded
   for (size_t i = 0; i < manager->path_cache.count; i++)
     {
       if (strcmp (manager->path_cache.paths[i], path) == 0)
@@ -107,7 +106,6 @@ resource_load (resource_manager_t *manager, const char *path,
         }
     }
 
-  // Load file
   size_t size;
   void *data = load_file (path, &size);
   if (!data)
@@ -116,7 +114,6 @@ resource_load (resource_manager_t *manager, const char *path,
                            "Failed to load resource");
     }
 
-  // Create resource
   if (manager->resource_count >= manager->resource_capacity)
     {
       free (data);
@@ -134,7 +131,6 @@ resource_load (resource_manager_t *manager, const char *path,
   res->last_modified = get_file_mtime (path);
   res->ref_count = 1;
 
-  // Add to cache
   size_t cache_idx = manager->path_cache.count++;
   manager->path_cache.ids[cache_idx] = id;
   manager->path_cache.paths[cache_idx] = res->file_path;

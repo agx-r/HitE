@@ -5,9 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Legacy CPU SDF includes removed. GPU is authoritative for rendering.
-
-// Transform helpers (simplified - full implementation would use quaternions)
 vec3_t
 transform_point (vec3_t point, const transform_t *transform)
 {
@@ -26,7 +23,6 @@ transform_point_inverse (vec3_t point, const transform_t *transform)
                    ._padding = 0 };
 }
 
-// CPU-side SDF evaluation no longer used for rendering; keep safe stub.
 float
 shape_evaluate_sdf (const shape_component_t *shape, vec3_t world_point)
 {
@@ -35,7 +31,6 @@ shape_evaluate_sdf (const shape_component_t *shape, vec3_t world_point)
   return 1000000.0f;
 }
 
-// Component lifecycle
 result_t
 shape_component_start (ecs_world_t *world, entity_id_t entity,
                        void *component_data)
@@ -86,13 +81,11 @@ shape_component_destroy (void *component_data)
 void
 shape_component_register (ecs_world_t *world)
 {
-  REGISTER_COMPONENT (world, "shape", shape_component_t,
-                      shape_component_start, shape_component_update,
-                      shape_component_render, shape_component_destroy,
-                      "Shape", 0, NULL);
+  REGISTER_COMPONENT (world, "shape", shape_component_t, shape_component_start,
+                      shape_component_update, shape_component_render,
+                      shape_component_destroy, "Shape", 0, NULL);
 }
 
-// Helper constructors for common shapes (simplified to set fields only)
 shape_component_t
 shape_sphere_create (vec3_t position, float radius, vec4_t color)
 {

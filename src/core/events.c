@@ -47,7 +47,6 @@ event_emit (event_system_t *system, const event_t *event)
       return RESULT_ERROR (RESULT_ERROR_ALLOCATION, "Event queue full");
     }
 
-  // Add to queue
   system->queue[system->queue_tail] = *event;
   system->queue[system->queue_tail].timestamp
       = (double)clock () / CLOCKS_PER_SEC;
@@ -66,10 +65,9 @@ event_process (event_system_t *system)
 
   while (system->queue_count > 0)
     {
-      // Get next event
+
       event_t *event = &system->queue[system->queue_head];
 
-      // Dispatch to listeners
       for (size_t i = 0; i < system->listener_count; i++)
         {
           event_listener_t *listener = &system->listeners[i];
@@ -79,7 +77,6 @@ event_process (event_system_t *system)
           if (listener->type != event->type)
             continue;
 
-          // Entity filter
           if (listener->entity_filter != INVALID_ENTITY
               && listener->entity_filter != event->entity)
             {
@@ -89,7 +86,6 @@ event_process (event_system_t *system)
           listener->callback (event, listener->user_data);
         }
 
-      // Move to next
       system->queue_head = (system->queue_head + 1) % EVENT_QUEUE_SIZE;
       system->queue_count--;
     }
@@ -113,7 +109,7 @@ event_listen_entity (event_system_t *system, event_type_t type,
 
   if (system->listener_count >= system->listener_capacity)
     {
-      return 0; // Full
+      return 0;
     }
 
   listener_id_t id = system->listener_count++;

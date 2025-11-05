@@ -91,7 +91,6 @@ main (int argc, char **argv)
   printf ("=== HitE ===\n");
   printf ("High-performance Vulkan raymarching engine\n\n");
 
-  // Engine config
   engine_config_t config = engine_config_default ();
 
   engine_state_t state;
@@ -119,10 +118,8 @@ main (int argc, char **argv)
       return 1;
     }
 
-  // run main loop
   engine_run (&state);
 
-  // cleanup
   if (prefab_system)
     prefab_system_destroy (prefab_system);
   engine_cleanup (&state);

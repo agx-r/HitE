@@ -32,4 +32,4 @@ void swapchain_destroy (vulkan_context_t *context, swapchain_t *swapchain);
 result_t swapchain_present (vulkan_context_t *context, swapchain_t *swapchain,
                             const gpu_image_t *source_image);
 
-#endif // HITE_SWAPCHAIN_H
+#endif

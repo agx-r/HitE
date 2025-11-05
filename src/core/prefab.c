@@ -148,14 +148,12 @@ prefab_load (prefab_system_t *system, const char *filepath,
                            "TinyScheme not initialized");
     }
 
-  // evaluate tscheme file
   pointer result;
   result_t load_result
       = hite_scheme_load_file (g_scheme_state, filepath, &result);
   if (load_result.code != RESULT_OK)
     return load_result;
 
-  // prefab definition verify (prefab ...)
   if (!scheme_is_pair_wrapper (g_scheme_state, result))
     {
       return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
@@ -176,7 +174,6 @@ prefab_load (prefab_system_t *system, const char *filepath,
                            "Expected (prefab ...)");
     }
 
-  // Expand capacity if needed
   if (system->prefab_count >= system->prefab_capacity)
     {
       size_t new_capacity = system->prefab_capacity * 2;
@@ -217,7 +214,6 @@ prefab_load (prefab_system_t *system, const char *filepath,
               continue;
             }
 
-          // name
           if (strcmp (field_name, "name") == 0)
             {
               pointer value = scheme_cadr_wrapper (g_scheme_state, field);
@@ -229,7 +225,7 @@ prefab_load (prefab_system_t *system, const char *filepath,
                     prefab->name = strdup (name);
                 }
             }
-          // description
+
           else if (strcmp (field_name, "description") == 0)
             {
               pointer value = scheme_cadr_wrapper (g_scheme_state, field);
@@ -241,10 +237,10 @@ prefab_load (prefab_system_t *system, const char *filepath,
                     prefab->description = strdup (desc);
                 }
             }
-          // component
+
           else if (strcmp (field_name, "component") == 0)
             {
-              // Get component name
+
               pointer comp_name_obj
                   = scheme_cadr_wrapper (g_scheme_state, field);
               if (!scheme_is_string_wrapper (g_scheme_state, comp_name_obj))
@@ -259,9 +255,6 @@ prefab_load (prefab_system_t *system, const char *filepath,
                   = scheme_string_wrapper (g_scheme_state, comp_name_obj);
               printf ("[Prefab] Parsing component: %s\n", comp_name);
 
-              // component data based on type
-              //
-              // GET READY FOR ULTRASHITCODE
               if (strcmp (comp_name, "shape") == 0)
                 {
                   shape_component_t shape_data;
@@ -373,6 +366,23 @@ prefab_load (prefab_system_t *system, const char *filepath,
                           res.message);
                     }
                 }
+              else if (strcmp (comp_name, "lighting") == 0)
+                {
+                  lighting_component_t lighting_data;
+                  result_t res = parse_lighting_component (
+                      g_scheme_state, field, &lighting_data);
+                  if (res.code == RESULT_OK)
+                    {
+                      prefab_add_component (prefab, "lighting", &lighting_data,
+                                            sizeof (lighting_component_t));
+                      printf ("[Prefab]   Lighting component parsed\n");
+                    }
+                  else
+                    {
+                      printf ("[Prefab]   Failed to parse lighting: %s\n",
+                              res.message);
+                    }
+                }
               else
                 {
                   printf ("[Prefab]   ! Unknown component type: %s\n",
@@ -396,7 +406,6 @@ prefab_load (prefab_system_t *system, const char *filepath,
   return RESULT_SUCCESS;
 }
 
-// Load all prefabs from directory
 result_t
 prefab_load_directory (prefab_system_t *system, const char *directory_path)
 {
@@ -420,22 +429,19 @@ prefab_load_directory (prefab_system_t *system, const char *directory_path)
 
   while ((entry = readdir (dir)) != NULL)
     {
-      // Skip . and ..
+
       if (strcmp (entry->d_name, ".") == 0
           || strcmp (entry->d_name, "..") == 0)
         continue;
 
-      // Check if file ends with .scm
       size_t name_len = strlen (entry->d_name);
       if (name_len < 4 || strcmp (entry->d_name + name_len - 4, ".scm") != 0)
         continue;
 
-      // Build full path
       char filepath[512];
       snprintf (filepath, sizeof (filepath), "%s/%s", directory_path,
                 entry->d_name);
 
-      // Load prefab
       result_t result = prefab_load (system, filepath, NULL);
       if (result.code == RESULT_OK)
         {
@@ -456,7 +462,6 @@ prefab_load_directory (prefab_system_t *system, const char *directory_path)
   return RESULT_SUCCESS;
 }
 
-// Set prefabs directory for lazy loading
 void
 prefab_system_set_directory (prefab_system_t *system,
                              const char *directory_path)
@@ -527,7 +532,6 @@ prefab_instantiate (const prefab_t *prefab, ecs_world_t *world,
       return RESULT_ERROR (RESULT_ERROR_ALLOCATION, "Failed to create entity");
     }
 
-  // Add all components
   for (size_t i = 0; i < prefab->component_count; i++)
     {
       const prefab_component_data_t *comp = &prefab->components[i];

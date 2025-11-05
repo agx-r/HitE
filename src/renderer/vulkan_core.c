@@ -3,10 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Validation layers
 static const char *validation_layers[] = { "VK_LAYER_KHRONOS_validation" };
 
-// Debug callback
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 debug_callback (VkDebugUtilsMessageSeverityFlagBitsEXT severity,
                 VkDebugUtilsMessageTypeFlagsEXT type,
@@ -26,7 +24,6 @@ vulkan_init (vulkan_context_t *context, bool enable_validation)
 {
   memset (context, 0, sizeof (vulkan_context_t));
 
-  // Create instance
   VkApplicationInfo app_info = { 0 };
   app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
   app_info.pApplicationName = "Hite Engine";
@@ -39,7 +36,6 @@ vulkan_init (vulkan_context_t *context, bool enable_validation)
   create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   create_info.pApplicationInfo = &app_info;
 
-  // Extensions - get required extensions from GLFW
   uint32_t glfw_extension_count = 0;
   const char **glfw_extensions
       = glfwGetRequiredInstanceExtensions (&glfw_extension_count);
@@ -70,7 +66,6 @@ vulkan_init (vulkan_context_t *context, bool enable_validation)
                            "Failed to create Vulkan instance");
     }
 
-  // Setup debug messenger
   if (enable_validation)
     {
       VkDebugUtilsMessengerCreateInfoEXT debug_create_info = { 0 };
@@ -95,7 +90,6 @@ vulkan_init (vulkan_context_t *context, bool enable_validation)
         }
     }
 
-  // Pick physical device
   uint32_t device_count = 0;
   vkEnumeratePhysicalDevices (context->instance, &device_count, NULL);
   if (device_count == 0)
@@ -106,7 +100,7 @@ vulkan_init (vulkan_context_t *context, bool enable_validation)
   VkPhysicalDevice *devices
       = malloc (device_count * sizeof (VkPhysicalDevice));
   vkEnumeratePhysicalDevices (context->instance, &device_count, devices);
-  context->physical_device = devices[0]; // Pick first device
+  context->physical_device = devices[0];
   free (devices);
 
   vkGetPhysicalDeviceProperties (context->physical_device,
@@ -117,7 +111,6 @@ vulkan_init (vulkan_context_t *context, bool enable_validation)
   printf ("[Vulkan] Using device: %s\n",
           context->device_properties.deviceName);
 
-  // Find queue families
   uint32_t queue_family_count = 0;
   vkGetPhysicalDeviceQueueFamilyProperties (context->physical_device,
                                             &queue_family_count, NULL);
@@ -150,7 +143,6 @@ vulkan_init (vulkan_context_t *context, bool enable_validation)
                            "Required queue families not found");
     }
 
-  // Create logical device
   float queue_priority = 1.0f;
   VkDeviceQueueCreateInfo queue_create_infos[2] = { 0 };
   uint32_t queue_create_count = 1;
@@ -160,7 +152,6 @@ vulkan_init (vulkan_context_t *context, bool enable_validation)
   queue_create_infos[0].queueCount = 1;
   queue_create_infos[0].pQueuePriorities = &queue_priority;
 
-  // Only add separate compute queue if it's a different family
   if (context->compute_family != context->graphics_family)
     {
       queue_create_infos[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -173,7 +164,6 @@ vulkan_init (vulkan_context_t *context, bool enable_validation)
   VkPhysicalDeviceFeatures device_features = { 0 };
   device_features.shaderFloat64 = VK_TRUE;
 
-  // Device extensions
   const char *device_extensions[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
   VkDeviceCreateInfo device_create_info = { 0 };
@@ -197,7 +187,6 @@ vulkan_init (vulkan_context_t *context, bool enable_validation)
   vkGetDeviceQueue (context->device, context->compute_family, 0,
                     &context->compute_queue);
 
-  // Create command pools
   VkCommandPoolCreateInfo pool_info = { 0 };
   pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -392,7 +381,6 @@ gpu_image_create (vulkan_context_t *context, uint32_t width, uint32_t height,
 
   vkBindImageMemory (context->device, image->image, image->memory, 0);
 
-  // Create image view
   VkImageViewCreateInfo view_info = { 0 };
   view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   view_info.image = image->image;
