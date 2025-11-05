@@ -1,5 +1,5 @@
 {
-  description = "Hite - High-performance Vulkan raymarching engine";
+  description = "HitE";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -43,9 +43,7 @@
             "-DCMAKE_INSTALL_PREFIX=$out"
           ];
           
-          # Use CMake install to properly copy all files including compiled shaders
           installPhase = ''
-            # CMake install will copy everything according to CMakeLists.txt
             cmake --install . --prefix $out
           '';
         };
