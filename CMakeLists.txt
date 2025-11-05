@@ -5,17 +5,15 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Compiler flags for performance
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -Wall -Wextra -Wno-missing-braces")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -Wextra -Wno-missing-braces")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -DNDEBUG")
 
-# Find packages
 find_package(Vulkan REQUIRED)
 find_package(glfw3 REQUIRED)
 
-# TinyScheme library
+# TinyScheme lib
 add_library(tinyscheme STATIC external/tinyscheme/scheme.c)
 target_compile_definitions(tinyscheme PRIVATE
     STANDALONE=0
@@ -31,17 +29,17 @@ target_compile_definitions(tinyscheme PRIVATE
     USE_INTERFACE=0
 )
 target_include_directories(tinyscheme PUBLIC external/tinyscheme)
-# Disable warnings for TinyScheme (it's external code)
+# Disable warnings for TinyScheme
 target_compile_options(tinyscheme PRIVATE -w)
 target_compile_features(tinyscheme PUBLIC c_std_99)
 
-# Source files
+# Srcs
 file(GLOB_RECURSE SOURCES
     "src/*.c"
     "src/*.cpp"
 )
 
-# Executable
+# Exe
 add_executable(hite ${SOURCES})
 
 target_include_directories(hite PRIVATE
@@ -66,7 +64,7 @@ file(GLOB_RECURSE SHADER_SOURCES
     "${CMAKE_SOURCE_DIR}/shaders/*.frag"
 )
 
-# All GLSL files (for dependencies)
+# All GLSLs
 file(GLOB_RECURSE GLSL_FILES
     "${CMAKE_SOURCE_DIR}/shaders/*.glsl"
 )
@@ -87,21 +85,20 @@ endforeach()
 add_custom_target(shaders ALL DEPENDS ${SHADER_OUTPUTS})
 add_dependencies(hite shaders)
 
-# Copy prefab files to build directory (Scheme format)
+# Copy prefabs to build directory (Scheme)
 file(GLOB PREFAB_FILES "${CMAKE_SOURCE_DIR}/prefabs/*.scm")
 foreach(PREFAB_FILE ${PREFAB_FILES})
     get_filename_component(PREFAB_NAME ${PREFAB_FILE} NAME)
     configure_file(${PREFAB_FILE} ${CMAKE_BINARY_DIR}/prefabs/${PREFAB_NAME} COPYONLY)
 endforeach()
 
-# Copy world files to build directory (Scheme format)
+# Copy worlds to build directory (Scheme)
 file(GLOB WORLD_FILES "${CMAKE_SOURCE_DIR}/worlds/*.scm")
 foreach(WORLD_FILE ${WORLD_FILES})
     get_filename_component(WORLD_NAME ${WORLD_FILE} NAME)
     configure_file(${WORLD_FILE} ${CMAKE_BINARY_DIR}/worlds/${WORLD_NAME} COPYONLY)
 endforeach()
 
-# Install targets
 install(TARGETS hite DESTINATION bin)
 install(DIRECTORY ${CMAKE_BINARY_DIR}/shaders DESTINATION share/hite)
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/prefabs DESTINATION share/hite FILES_MATCHING PATTERN "*.scm")
