@@ -1,4 +1,3 @@
-;; Test sphere prefab
 (prefab
   (name "test_sphere")
   (description "Test sphere for rendering")

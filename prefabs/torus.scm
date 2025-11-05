@@ -1,4 +1,3 @@
-;; Torus prefab
 (prefab
   (name "torus")
   (description "Torus shape for rendering")
