@@ -22,7 +22,7 @@
   (component "gui")
   (component "developer_overlay")
   
-  ;; Potation
+  ;; Rotation
   (component "camera_rotation"
     (yaw -3.14159)
     (pitch -0.3)
