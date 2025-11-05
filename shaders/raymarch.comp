@@ -8,10 +8,10 @@ layout (binding = 0) uniform Uniforms
   mat4 projection_matrix;
   vec4 camera_position;
   vec4 camera_direction;
-  vec4 resolution;  // Changed from vec2 to vec4 to match C struct (vec2_t is ALIGN_16 = 16 bytes)
+  vec4 resolution; // vec2_t is ALIGN_16 = 16 bytes
   float time;
-  uint object_count; // Number of active objects
-  float _padding[2]; // Align to match C struct (192 bytes total)
+  uint object_count;
+  float _padding[2]; // should be 192 bytes total
 }
 ubo;
 
@@ -23,7 +23,7 @@ struct SDFObject
   vec4 color;      // rgba
   vec4 dimensions; // xyz = dimensions, w = type (as float)
   vec4 params;     // x = smoothing, y = material_id, z/w = reserved
-                   // Should be 64 bytes (4 vec4)
+                   // should be 64 bytes (4 vec4)
 };
 
 layout (std430, binding = 2) buffer SDFObjects { SDFObject objects[]; }
@@ -125,7 +125,7 @@ scene_sdf (vec3 p, out vec4 color)
   return min_dist;
 }
 
-// Optimized normal calculation using tetrahedron method (4 samples instead of 6)
+// tetrahedron
 vec3
 calculate_normal (vec3 p)
 {
@@ -148,7 +148,6 @@ apply_lighting (vec3 p, vec3 normal, vec3 color)
 
   float ambient = 0.2;
 
-  // Specular
   vec3 view_dir = normalize (ubo.camera_position.xyz - p);
   vec3 reflect_dir = reflect (-light_dir, normal);
   float specular = pow (max (dot (view_dir, reflect_dir), 0.0), 32.0);
@@ -200,10 +199,10 @@ main ()
       return;
     }
 
-    // Ray direction  
-    vec2 uv = (vec2 (pixel_coords.x, ubo.resolution.y - pixel_coords.y)
-               - ubo.resolution.xy * 0.5)
-              / ubo.resolution.y;
+  // Ray direction
+  vec2 uv = (vec2 (pixel_coords.x, ubo.resolution.y - pixel_coords.y)
+             - ubo.resolution.xy * 0.5)
+            / ubo.resolution.y;
 
   // Camera
   vec3 ro = ubo.camera_position.xyz;
