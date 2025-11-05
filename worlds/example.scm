@@ -6,9 +6,11 @@
   (entity (prefab "torus")
     (component "shape"
       (position 0 4 0)))
+
   (entity (prefab "torus")
     (component "shape"
       (position 0 2 0)))
+
+  (entity (prefab "terrain"))
   
-  ;; Camera entity from prefab
   (entity (prefab "camera")))

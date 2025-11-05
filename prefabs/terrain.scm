@@ -1,6 +1,6 @@
 (prefab
   (name "terrain")
-  (description "Chaotic Mountain Terrain with caves and arches")
+  (description "Classic terrain")
   (component "shape"
     (type "terrain")
     (position 0 0 0)

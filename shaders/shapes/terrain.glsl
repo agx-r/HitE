@@ -2,90 +2,82 @@
 #define SHAPE_TERRAIN_GLSL
 #include "shape_common.glsl"
 
+// Hash function for random values
 float hash2(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
 }
 
-float hash3(vec3 p) {
-    return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453123);
+vec2 hash2_vec2(vec2 p) {
+    float h = hash2(p);
+    float angle = h * 6.28318; // 2*PI
+    return vec2(cos(angle), sin(angle));
 }
 
-vec3 repeat(vec3 p, vec3 c) {
-    return p - c * round(p / c);
+// Cheap Perlin noise (gradient noise)
+float perlin_noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    
+    // Smooth interpolation
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    
+    // Get gradients at corners
+    vec2 g00 = hash2_vec2(i + vec2(0.0, 0.0));
+    vec2 g10 = hash2_vec2(i + vec2(1.0, 0.0));
+    vec2 g01 = hash2_vec2(i + vec2(0.0, 1.0));
+    vec2 g11 = hash2_vec2(i + vec2(1.0, 1.0));
+    
+    // Distance vectors from corners
+    vec2 d00 = f - vec2(0.0, 0.0);
+    vec2 d10 = f - vec2(1.0, 0.0);
+    vec2 d01 = f - vec2(0.0, 1.0);
+    vec2 d11 = f - vec2(1.0, 1.0);
+    
+    // Dot products
+    float n00 = dot(g00, d00);
+    float n10 = dot(g10, d10);
+    float n01 = dot(g01, d01);
+    float n11 = dot(g11, d11);
+    
+    // Bilinear interpolation
+    float n0 = mix(n00, n10, u.x);
+    float n1 = mix(n01, n11, u.x);
+    return mix(n0, n1, u.y);
 }
 
-float sdf_box_local(vec3 p, vec3 b) {
-    vec3 q = abs(p) - b;
-    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+// Fractal noise (octaves)
+float fractal_noise(vec2 p, float seed) {
+    // Offset by seed
+    p += vec2(seed * 100.0, seed * 200.0);
+    
+    float value = 0.0;
+    float amplitude = 1.0;
+    float frequency = 0.1;
+    float max_value = 0.0;
+    
+    // 3 octaves for smooth hills
+    for(int i = 0; i < 3; i++) {
+        value += perlin_noise(p * frequency) * amplitude;
+        max_value += amplitude;
+        amplitude *= 0.5;
+        frequency *= 2.0;
+    }
+    
+    return value / max_value;
 }
 
-float create_mansion_cell(vec3 p, vec3 cell_id, float seed) {
-    float h_size = hash3(cell_id + vec3(seed));
-    float h1 = hash3(cell_id + vec3(seed * 1.1));
-    float h2 = hash3(cell_id * 2.71 + vec3(seed * 1.41));
-    float h3 = hash3(cell_id * 3.14 + vec3(seed * 2.71));
-    float h4 = hash3(cell_id * 4.13 + vec3(seed * 3.14));
-    float h6 = hash3(cell_id * 6.23 + vec3(seed * 5.23));
-    float h7 = hash3(cell_id * 7.31 + vec3(seed * 6.31));
-    
-    float room_size = 4.0 + h_size * 3.0;
-    float door_w = 1.5;
-    float door_h = 2.5;
-    float door_d = 1.0;
-    float door_y = -room_size + door_h * 0.5;
-    
-    float solid = -1e10;
-    
-    float room = sdf_box_local(p, vec3(room_size));
-    solid = max(solid, -room);
-    
-    if(h1 > 0.5) {
-        float door = sdf_box_local(p - vec3(room_size, door_y, 0), vec3(door_d, door_h * 0.5, door_w * 0.5));
-        solid = max(solid, -door);
-    }
-    if(h2 > 0.5) {
-        float door = sdf_box_local(p - vec3(-room_size, door_y, 0), vec3(door_d, door_h * 0.5, door_w * 0.5));
-        solid = max(solid, -door);
-    }
-    if(h3 > 0.5) {
-        float door = sdf_box_local(p - vec3(0, door_y, room_size), vec3(door_w * 0.5, door_h * 0.5, door_d));
-        solid = max(solid, -door);
-    }
-    if(h4 > 0.5) {
-        float door = sdf_box_local(p - vec3(0, door_y, -room_size), vec3(door_w * 0.5, door_h * 0.5, door_d));
-        solid = max(solid, -door);
-    }
-    
-    if(h6 > 0.65) {
-        float hole_up = sdf_box_local(p - vec3(0, room_size, 0), vec3(1.5, 1.0, 1.5));
-        solid = max(solid, -hole_up);
-    }
-    
-    if(h7 > 0.65) {
-        float hole_down = sdf_box_local(p - vec3(0, -room_size, 0), vec3(1.5, 1.0, 1.5));
-        solid = max(solid, -hole_down);
-    }
-    
-    for(float i = -1.0; i <= 1.0; i += 2.0) {
-        for(float j = -1.0; j <= 1.0; j += 2.0) {
-            float voxel_hash = hash3(vec3(i, j, 0) + cell_id * 11.37);
-            if(voxel_hash > 0.7) {
-                vec3 pillar_p = p - vec3(i * (room_size - 0.8), 0, j * (room_size - 0.8));
-                float pillar = sdf_box_local(pillar_p, vec3(0.3, room_size - 0.2, 0.3));
-                solid = min(solid, pillar);
-            }
-        }
-    }
-    
-    return solid;
+// Get terrain height at x,z position
+float get_terrain_height(vec2 xz, float seed) {
+    return fractal_noise(xz, seed) * 5.0; // Scale height to 5 units
 }
 
 float shape_terrain_eval(vec3 p, float seed) {
-    float spacing = 12.0;
-    vec3 cell_id = round(p / spacing);
-    vec3 local_p = repeat(p, vec3(spacing));
+    // Get terrain height at this x,z position
+    float terrain_height = get_terrain_height(p.xz, seed);
     
-    return create_mansion_cell(local_p, cell_id, seed);
+    // Distance from point to terrain surface
+    // Positive if above terrain, negative if below
+    return p.y - terrain_height;
 }
 
 #endif
