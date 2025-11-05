@@ -10,10 +10,8 @@
 #include <string.h>
 #include <sys/stat.h>
 
-// Global Scheme state for prefab loading
 static scheme_state_t *g_scheme_state = NULL;
 
-// Prefab system lifecycle
 prefab_system_t *
 prefab_system_create (void)
 {
@@ -29,7 +27,6 @@ prefab_system_create (void)
       return NULL;
     }
 
-  // Initialize TinyScheme
   g_scheme_state = hite_scheme_init ();
   if (!g_scheme_state)
     {
@@ -55,7 +52,6 @@ prefab_system_destroy (prefab_system_t *system)
     free ((void *)system->prefabs_directory);
   free (system);
 
-  // Shutdown TinyScheme
   if (g_scheme_state)
     {
       hite_scheme_shutdown (g_scheme_state);
@@ -63,7 +59,6 @@ prefab_system_destroy (prefab_system_t *system)
     }
 }
 
-// Create empty prefab
 prefab_t *
 prefab_create (const char *name)
 {
@@ -76,7 +71,6 @@ prefab_create (const char *name)
   return prefab;
 }
 
-// Add component to prefab
 result_t
 prefab_add_component (prefab_t *prefab, const char *component_name,
                       const void *data, size_t data_size)
@@ -108,7 +102,6 @@ prefab_add_component (prefab_t *prefab, const char *component_name,
   return RESULT_SUCCESS;
 }
 
-// Cleanup prefab
 void
 prefab_cleanup (prefab_t *prefab)
 {
@@ -139,7 +132,6 @@ prefab_cleanup (prefab_t *prefab)
     }
 }
 
-// Load prefab from Scheme file using TinyScheme
 result_t
 prefab_load (prefab_system_t *system, const char *filepath,
              prefab_t **out_prefab)
@@ -156,14 +148,14 @@ prefab_load (prefab_system_t *system, const char *filepath,
                            "TinyScheme not initialized");
     }
 
-  // Load and evaluate Scheme file
+  // evaluate tscheme file
   pointer result;
   result_t load_result
       = hite_scheme_load_file (g_scheme_state, filepath, &result);
   if (load_result.code != RESULT_OK)
     return load_result;
 
-  // Verify it's a prefab definition: (prefab ...)
+  // prefab definition verify (prefab ...)
   if (!scheme_is_pair_wrapper (g_scheme_state, result))
     {
       return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
@@ -202,7 +194,6 @@ prefab_load (prefab_system_t *system, const char *filepath,
   prefab_t *prefab = &system->prefabs[system->prefab_count];
   memset (prefab, 0, sizeof (prefab_t));
 
-  // Parse fields: (name "..."), (description "..."), (component ...)
   pointer current = scheme_cdr_wrapper (g_scheme_state, result);
 
   while (scheme_is_pair_wrapper (g_scheme_state, current))
@@ -226,7 +217,7 @@ prefab_load (prefab_system_t *system, const char *filepath,
               continue;
             }
 
-          // Parse name
+          // name
           if (strcmp (field_name, "name") == 0)
             {
               pointer value = scheme_cadr_wrapper (g_scheme_state, field);
@@ -238,7 +229,7 @@ prefab_load (prefab_system_t *system, const char *filepath,
                     prefab->name = strdup (name);
                 }
             }
-          // Parse description
+          // description
           else if (strcmp (field_name, "description") == 0)
             {
               pointer value = scheme_cadr_wrapper (g_scheme_state, field);
@@ -250,7 +241,7 @@ prefab_load (prefab_system_t *system, const char *filepath,
                     prefab->description = strdup (desc);
                 }
             }
-          // Parse component
+          // component
           else if (strcmp (field_name, "component") == 0)
             {
               // Get component name
@@ -268,7 +259,9 @@ prefab_load (prefab_system_t *system, const char *filepath,
                   = scheme_string_wrapper (g_scheme_state, comp_name_obj);
               printf ("[Prefab] Parsing component: %s\n", comp_name);
 
-              // Parse component data based on type
+              // component data based on type
+              //
+              // GET READY FOR ULTRASHITCODE
               if (strcmp (comp_name, "shape") == 0)
                 {
                   shape_component_t shape_data;
@@ -282,7 +275,7 @@ prefab_load (prefab_system_t *system, const char *filepath,
                     }
                   else
                     {
-                      printf ("[Prefab]   ? Failed to parse shape: %s\n",
+                      printf ("[Prefab]   Failed to parse shape: %s\n",
                               res.message);
                     }
                 }
@@ -465,7 +458,8 @@ prefab_load_directory (prefab_system_t *system, const char *directory_path)
 
 // Set prefabs directory for lazy loading
 void
-prefab_system_set_directory (prefab_system_t *system, const char *directory_path)
+prefab_system_set_directory (prefab_system_t *system,
+                             const char *directory_path)
 {
   if (!system)
     return;
@@ -479,34 +473,30 @@ prefab_system_set_directory (prefab_system_t *system, const char *directory_path
     system->prefabs_directory = NULL;
 }
 
-// Find prefab by name (lazy loads if not found and directory is set)
 prefab_t *
 prefab_find (prefab_system_t *system, const char *name)
 {
   if (!system || !name)
     return NULL;
 
-  // First, try to find already loaded prefab
   for (size_t i = 0; i < system->prefab_count; i++)
     {
-      if (system->prefabs[i].name && strcmp (system->prefabs[i].name, name) == 0)
+      if (system->prefabs[i].name
+          && strcmp (system->prefabs[i].name, name) == 0)
         {
           return &system->prefabs[i];
         }
     }
 
-  // If not found and directory is set, try lazy loading
   if (system->prefabs_directory)
     {
       char filepath[512];
       snprintf (filepath, sizeof (filepath), "%s/%s.scm",
                 system->prefabs_directory, name);
 
-      // Try to load the prefab file
       result_t result = prefab_load (system, filepath, NULL);
       if (result.code == RESULT_OK)
         {
-          // Prefab was loaded, now find it
           for (size_t i = 0; i < system->prefab_count; i++)
             {
               if (system->prefabs[i].name
@@ -521,7 +511,6 @@ prefab_find (prefab_system_t *system, const char *name)
   return NULL;
 }
 
-// Instantiate prefab into world
 result_t
 prefab_instantiate (const prefab_t *prefab, ecs_world_t *world,
                     entity_id_t *out_entity)

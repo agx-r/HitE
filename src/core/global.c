@@ -18,9 +18,9 @@
 
 #define DEFAULT_WINDOW_WIDTH 1280
 #define DEFAULT_WINDOW_HEIGHT 720
-#define DEFAULT_WINDOW_TITLE "Hite Engine"
+#define DEFAULT_WINDOW_TITLE "HitE"
 
-// Default configuration
+// default config
 engine_config_t
 engine_config_default (void)
 {
@@ -35,7 +35,6 @@ engine_config_default (void)
   return config;
 }
 
-// GLFW key callback
 void
 glfw_key_callback (GLFWwindow *window, int key, int scancode, int action,
                    int mods)
@@ -70,7 +69,6 @@ glfw_key_callback (GLFWwindow *window, int key, int scancode, int action,
     }
 }
 
-// GLFW mouse callback
 void
 glfw_mouse_callback (GLFWwindow *window, double xpos, double ypos)
 {
@@ -104,7 +102,6 @@ glfw_mouse_callback (GLFWwindow *window, double xpos, double ypos)
                                state->camera_pitch);
 }
 
-// Process camera movement
 void
 process_camera_movement (engine_state_t *state, float delta_time)
 {
@@ -161,7 +158,6 @@ process_camera_movement (engine_state_t *state, float delta_time)
   render_system_move_camera (&state->render_system, movement);
 }
 
-// Initialize engine
 result_t
 engine_init (engine_state_t *state, const engine_config_t *config)
 {
@@ -172,13 +168,12 @@ engine_init (engine_state_t *state, const engine_config_t *config)
   state->window_title = config->window_title;
   state->enable_validation = config->enable_validation;
 
-  // Initialize GLFW
   if (!glfwInit ())
     {
       return RESULT_ERROR (RESULT_ERROR_VULKAN, "Failed to initialize GLFW");
     }
 
-  // Force Wayland only
+  // Wayland only
   glfwInitHint (GLFW_PLATFORM, GLFW_PLATFORM_WAYLAND);
 
   glfwWindowHint (GLFW_CLIENT_API, GLFW_NO_API);
@@ -196,21 +191,19 @@ engine_init (engine_state_t *state, const engine_config_t *config)
   glfwSetKeyCallback (state->window, glfw_key_callback);
   glfwSetCursorPosCallback (state->window, glfw_mouse_callback);
 
-  // Capture mouse
+  // capture mouse
   glfwSetInputMode (state->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-  // Initialize camera state to match initial direction
   state->first_mouse = true;
   state->camera_yaw = -M_PI;
   state->camera_pitch = -0.3f;
   memset (state->keys, 0, sizeof (state->keys));
 
-  // Initialize Vulkan
   result_t result = vulkan_init (&state->vk_context, state->enable_validation);
   if (result.code != RESULT_OK)
     return result;
 
-  // Initialize subsystems
+  // subsystems
   state->world_manager = world_manager_create ();
   state->event_system = event_system_create ();
   state->resource_manager = resource_manager_create ();
@@ -222,7 +215,6 @@ engine_init (engine_state_t *state, const engine_config_t *config)
                            "Failed to create subsystems");
     }
 
-  // Initialize render system
   result = render_system_init (&state->render_system, &state->vk_context,
                                state->window, state->window_width,
                                state->window_height);
@@ -234,7 +226,6 @@ engine_init (engine_state_t *state, const engine_config_t *config)
   return RESULT_SUCCESS;
 }
 
-// Cleanup engine
 void
 engine_cleanup (engine_state_t *state)
 {
@@ -256,7 +247,7 @@ engine_cleanup (engine_state_t *state)
   printf ("[Engine] Cleaned up\n");
 }
 
-// Load world and prefabs
+// world and prefabs
 result_t
 engine_load_world (engine_state_t *state, const engine_config_t *config,
                    prefab_system_t **out_prefab_system)
@@ -267,7 +258,6 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
                            "Invalid arguments");
     }
 
-  // Create prefab system
   prefab_system_t *prefab_system = prefab_system_create ();
   if (!prefab_system)
     {
@@ -275,7 +265,6 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
                            "Failed to create prefab system");
     }
 
-  // Set prefabs directory for lazy loading (only load prefabs when referenced)
   prefab_system_set_directory (prefab_system, config->prefabs_directory);
 
   // Create world
@@ -287,7 +276,6 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
                            "Failed to create ECS world");
     }
 
-  // Register components
   printf ("[Engine] Registering components...\n");
   camera_component_register (state->world_manager->active_world);
   camera_movement_component_register (state->world_manager->active_world);
@@ -298,9 +286,9 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
   developer_overlay_component_register (state->world_manager->active_world);
   printf ("[Engine] Components registered\n");
 
-  // Load world definition from file
   world_definition_t world_def = { 0 };
-  result_t result = world_load_from_file (config->initial_world_path, &world_def);
+  result_t result
+      = world_load_from_file (config->initial_world_path, &world_def);
   if (result.code != RESULT_OK)
     {
       printf ("[Warning] Failed to load world file: %s\n", result.message);
@@ -309,8 +297,6 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
       world_def.use_fixed_timestep = false;
     }
 
-  // Load world with definition (this will instantiate only entities declared
-  // in the world file)
   result = world_load (state->world_manager, &world_def, prefab_system);
   if (result.code != RESULT_OK)
     {
@@ -342,13 +328,13 @@ update_camera_from_component (engine_state_t *state)
       = camera_find_active (state->world_manager->active_world, NULL);
   if (camera)
     {
-      // Update render system camera from camera component
+      // upd render system camera from camera component
       render_system_set_camera (&state->render_system, camera->position,
                                 camera->direction);
     }
 }
 
-// Main loop
+// main loop
 void
 engine_run (engine_state_t *state)
 {
@@ -368,27 +354,21 @@ engine_run (engine_state_t *state)
       float delta_time = (float)(current_time - state->last_time);
       state->last_time = current_time;
 
-      // Poll events
       glfwPollEvents ();
       event_process (state->event_system);
 
-      // Update world (includes camera component)
       if (state->world_manager->active_world)
         {
           world_update (state->world_manager, delta_time);
 
-          // Update render system camera from camera component
           update_camera_from_component (state);
 
-          // Collect shapes for rendering
           render_system_collect_shapes (&state->render_system,
                                         state->world_manager->active_world);
         }
 
-      // Render
       render_system_render_frame (&state->render_system, (float)current_time);
 
-      // Hot reload check (every ~1 second)
       static double last_reload_check = 0;
       if (current_time - last_reload_check > 1.0)
         {

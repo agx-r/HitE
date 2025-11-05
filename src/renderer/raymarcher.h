@@ -9,14 +9,15 @@
 // GPU-side data structures (aligned for GPU)
 typedef struct
 {
-  mat4_t view_matrix;           // 64 bytes
-  mat4_t projection_matrix;     // 64 bytes
-  vec4_t camera_position;       // 16 bytes
-  vec4_t camera_direction;      // 16 bytes
-  vec2_t resolution;            // 16 bytes (with padding)
-  float time;                   // 4 bytes
-  uint32_t object_count;        // 4 bytes - Number of active objects for shader optimization
-  float _padding[2];            // 8 bytes - Align to 192 bytes (3?64)
+  mat4_t view_matrix;       // 64 bytes
+  mat4_t projection_matrix; // 64 bytes
+  vec4_t camera_position;   // 16 bytes
+  vec4_t camera_direction;  // 16 bytes
+  vec2_t resolution;        // 16 bytes (with padding)
+  float time;               // 4 bytes
+  uint32_t object_count;    // 4 bytes - Number of active objects for shader
+                            // optimization
+  float _padding[2];        // 8 bytes - Align to 192 bytes (3?64)
 } ALIGN_64 raymarch_uniforms_t;
 
 // Note: SDF object types are defined in shape_component.h as shape_type_t

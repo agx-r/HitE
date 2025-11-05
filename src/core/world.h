@@ -1,10 +1,10 @@
 #ifndef HITE_WORLD_H
 #define HITE_WORLD_H
 
+#include "component_parsers.h"
 #include "ecs.h"
 #include "prefab.h"
 #include "types.h"
-#include "component_parsers.h"
 
 // Component override for prefab instances
 typedef struct

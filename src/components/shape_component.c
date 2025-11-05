@@ -6,13 +6,13 @@
 
 // Include all shape implementations from shapes directory
 // They bring their own math helpers from shape_interface.h
-#include "../../shapes/sphere.c"
 #include "../../shapes/box.c"
-#include "../../shapes/torus.c"
-#include "../../shapes/plane.c"
-#include "../../shapes/cylinder.c"
 #include "../../shapes/capsule.c"
 #include "../../shapes/cone.c"
+#include "../../shapes/cylinder.c"
+#include "../../shapes/plane.c"
+#include "../../shapes/sphere.c"
+#include "../../shapes/torus.c"
 
 // Shape operations
 float
@@ -90,7 +90,8 @@ shape_evaluate_sdf (const shape_component_t *shape, vec3_t world_point)
       break;
 
     case SHAPE_PLANE:
-      distance = sdf_plane (local_point, (vec3_t){ .x = 0, .y = 1, .z = 0, ._padding = 0 },
+      distance = sdf_plane (local_point,
+                            (vec3_t){ .x = 0, .y = 1, .z = 0, ._padding = 0 },
                             shape->dimensions.x);
       break;
 
@@ -231,7 +232,8 @@ shape_sphere_create (vec3_t position, float radius, vec4_t color)
   shape_component_t shape = { 0 };
   shape.transform.position = position;
   shape.transform.scale = (vec3_t){ .x = 1, .y = 1, .z = 1, ._padding = 0 };
-  shape.transform.rotation = (vec4_t){ .x = 0, .y = 0, .z = 0, .w = 1 }; // Identity quaternion
+  shape.transform.rotation
+      = (vec4_t){ .x = 0, .y = 0, .z = 0, .w = 1 }; // Identity quaternion
   shape.type = SHAPE_SPHERE;
   shape.operation = SHAPE_OP_UNION;
   shape.dimensions.x = radius;

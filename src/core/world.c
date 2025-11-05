@@ -1,6 +1,6 @@
 #include "world.h"
-#include "prefab.h"
 #include "component_parsers.h"
+#include "prefab.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -69,8 +69,8 @@ world_load (world_manager_t *manager, const world_definition_t *definition,
   if (definition->entity_templates && definition->entity_template_count > 0)
     {
       result_t result = world_instantiate_templates (
-          world, definition->entity_templates, definition->entity_template_count,
-          prefab_system);
+          world, definition->entity_templates,
+          definition->entity_template_count, prefab_system);
       if (result.code != RESULT_OK)
         {
           ecs_world_destroy (world);
@@ -130,9 +130,10 @@ world_instantiate_templates (ecs_world_t *world,
               result_t res = prefab_instantiate (prefab, world, &entity);
               if (res.code != RESULT_OK)
                 {
-                  printf ("[World] Warning: Failed to instantiate prefab '%s': "
-                          "%s\n",
-                          tmpl->prefab_name, res.message);
+                  printf (
+                      "[World] Warning: Failed to instantiate prefab '%s': "
+                      "%s\n",
+                      tmpl->prefab_name, res.message);
                   continue;
                 }
             }
@@ -161,8 +162,7 @@ world_instantiate_templates (ecs_world_t *world,
           const char *comp_name = tmpl->components[j].component_name;
           const void *comp_data = tmpl->components[j].data;
 
-          component_id_t comp_id
-              = ecs_get_component_id (world, comp_name);
+          component_id_t comp_id = ecs_get_component_id (world, comp_name);
           if (comp_id == INVALID_ENTITY)
             {
               printf ("[World] Warning: Component '%s' not registered\n",
@@ -199,8 +199,8 @@ world_instantiate_templates (ecs_world_t *world,
               // Component doesn't exist - add new component
               if (comp_data)
                 {
-                  result_t result = ecs_add_component (world, entity, comp_id,
-                                                      comp_data);
+                  result_t result
+                      = ecs_add_component (world, entity, comp_id, comp_data);
                   if (result.code != RESULT_OK)
                     {
                       printf ("[World] Warning: Failed to add component '%s': "

@@ -47,7 +47,7 @@ void prefab_system_destroy (prefab_system_t *system);
 
 // Set prefabs directory for lazy loading
 void prefab_system_set_directory (prefab_system_t *system,
-                                   const char *directory_path);
+                                  const char *directory_path);
 
 // Load prefab from file (Scheme format)
 result_t prefab_load (prefab_system_t *system, const char *filepath,
