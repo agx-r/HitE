@@ -8,8 +8,10 @@ layout (binding = 0) uniform Uniforms
   mat4 projection_matrix;
   vec4 camera_position;
   vec4 camera_direction;
-  vec2 resolution;
+  vec4 resolution;  // Changed from vec2 to vec4 to match C struct (vec2_t is ALIGN_16 = 16 bytes)
   float time;
+  uint object_count; // Number of active objects
+  float _padding[2]; // Align to match C struct (192 bytes total)
 }
 ubo;
 
@@ -79,16 +81,10 @@ scene_sdf (vec3 p, out vec4 color)
   float min_dist = MAX_DIST;
   color = vec4 (0.1, 0.1, 0.1, 1.0);
 
-  // Iterate through SDF objects
-  for (int i = 0; i < 64; i++)
+  // Iterate through active SDF objects only
+  for (uint i = 0u; i < ubo.object_count; i++)
     {
       SDFObject obj = sdf_objects.objects[i];
-
-      // Check if this is an empty/invalid object slot
-      if (obj.color.a < 0.001)
-        {
-          break;
-        }
 
       vec3 local_p = p - obj.position.xyz;
       float dist = MAX_DIST;
@@ -129,16 +125,17 @@ scene_sdf (vec3 p, out vec4 color)
   return min_dist;
 }
 
+// Optimized normal calculation using tetrahedron method (4 samples instead of 6)
 vec3
 calculate_normal (vec3 p)
 {
   vec4 dummy_color;
-  vec2 e = vec2 (EPSILON, 0.0);
-  return normalize (vec3 (
-      scene_sdf (p + e.xyy, dummy_color) - scene_sdf (p - e.xyy, dummy_color),
-      scene_sdf (p + e.yxy, dummy_color) - scene_sdf (p - e.yxy, dummy_color),
-      scene_sdf (p + e.yyx, dummy_color)
-          - scene_sdf (p - e.yyx, dummy_color)));
+  const float h = EPSILON;
+  const vec2 k = vec2 (1, -1);
+  return normalize (k.xyy * scene_sdf (p + k.xyy * h, dummy_color)
+                    + k.yyx * scene_sdf (p + k.yyx * h, dummy_color)
+                    + k.yxy * scene_sdf (p + k.yxy * h, dummy_color)
+                    + k.xxx * scene_sdf (p + k.xxx * h, dummy_color));
 }
 
 vec3
@@ -203,10 +200,10 @@ main ()
       return;
     }
 
-  // Ray direction
-  vec2 uv = (vec2 (pixel_coords.x, ubo.resolution.y - pixel_coords.y)
-             - ubo.resolution * 0.5)
-            / ubo.resolution.y;
+    // Ray direction  
+    vec2 uv = (vec2 (pixel_coords.x, ubo.resolution.y - pixel_coords.y)
+               - ubo.resolution.xy * 0.5)
+              / ubo.resolution.y;
 
   // Camera
   vec3 ro = ubo.camera_position.xyz;

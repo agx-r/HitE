@@ -233,6 +233,10 @@ render_system_render_frame (render_system_t *system, float time)
                                   (float)system->raymarcher.height, 0, 0 };
 
   uniforms.time = time;
+  // Clamp object count to max buffer size for safety
+  uniforms.object_count = (system->sdf_object_count > MAX_SDF_OBJECTS) 
+                          ? MAX_SDF_OBJECTS 
+                          : system->sdf_object_count;
 
   // Execute raymarching
   result_t result = raymarcher_execute (&system->raymarcher, &uniforms);

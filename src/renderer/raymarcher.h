@@ -9,24 +9,18 @@
 // GPU-side data structures (aligned for GPU)
 typedef struct
 {
-  mat4_t view_matrix;
-  mat4_t projection_matrix;
-  vec4_t camera_position;
-  vec4_t camera_direction;
-  vec2_t resolution;
-  float time;
-  float _padding;
+  mat4_t view_matrix;           // 64 bytes
+  mat4_t projection_matrix;     // 64 bytes
+  vec4_t camera_position;       // 16 bytes
+  vec4_t camera_direction;      // 16 bytes
+  vec2_t resolution;            // 16 bytes (with padding)
+  float time;                   // 4 bytes
+  uint32_t object_count;        // 4 bytes - Number of active objects for shader optimization
+  float _padding[2];            // 8 bytes - Align to 192 bytes (3?64)
 } ALIGN_64 raymarch_uniforms_t;
 
-// SDF object types
-typedef enum
-{
-  SDF_SPHERE = 0,
-  SDF_BOX = 1,
-  SDF_TORUS = 2,
-  SDF_PLANE = 3,
-  SDF_CUSTOM = 100,
-} sdf_type_t;
+// Note: SDF object types are defined in shape_component.h as shape_type_t
+// We don't duplicate them here to avoid inconsistencies
 
 // SDF object data (GPU-compatible)
 // Must be exactly 64 bytes for ALIGN_64 to work correctly
