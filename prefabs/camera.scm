@@ -3,7 +3,7 @@
   (description "Camera entity with movement and rotation components")
   
   (component "camera"
-    (position 0 0 0)
+    (position 0 3 0)
     (direction 0 -0.3 1)
     (up 0 1 0)
     (fov 90.0)
