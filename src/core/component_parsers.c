@@ -9,10 +9,18 @@ apply_shape_component_override (scheme_state_t *state, pointer sexp,
                                 shape_component_t *target)
 {
   if (!state || !sexp || !target)
-    return;
+    {
+      printf ("[Component Override] Invalid arguments for shape override\n");
+      return;
+    }
 
   if (!scheme_is_pair_wrapper (state, sexp))
-    return;
+    {
+      printf ("[Component Override] S-expression is not a pair\n");
+      return;
+    }
+
+  printf ("[Component Override] Parsing shape component override\n");
 
   // Iterate through fields (skip first two: 'component' and "shape")
   pointer current = scheme_cdr_wrapper (state, sexp);
@@ -50,7 +58,21 @@ apply_shape_component_override (scheme_state_t *state, pointer sexp,
           else if (strcmp (field_name, "position") == 0)
             {
               pointer pos_list = scheme_cdr_wrapper (state, field);
-              scheme_parse_vec3 (state, pos_list, &target->transform.position);
+              result_t res = scheme_parse_vec3 (state, pos_list,
+                                                &target->transform.position);
+              if (res.code == RESULT_OK)
+                {
+                  printf ("[Component Override] Updated position to: %.2f %.2f "
+                          "%.2f\n",
+                          target->transform.position.x,
+                          target->transform.position.y,
+                          target->transform.position.z);
+                }
+              else
+                {
+                  printf ("[Component Override] Failed to parse position: %s\n",
+                          res.message);
+                }
             }
           else if (strcmp (field_name, "dimensions") == 0)
             {
@@ -640,7 +662,16 @@ apply_component_override (scheme_state_t *state, const char *component_name,
                           pointer sexp, void *target_component)
 {
   if (!state || !component_name || !sexp || !target_component)
-    return;
+    {
+      printf ("[Component Override] Invalid arguments: state=%p, name=%s, "
+              "sexp=%p, target=%p\n",
+              (void *)state, component_name ? component_name : "NULL",
+              (void *)sexp, target_component);
+      return;
+    }
+
+  printf ("[Component Override] Applying override for component '%s'\n",
+          component_name);
 
   if (strcmp (component_name, "shape") == 0)
     {

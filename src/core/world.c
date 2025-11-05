@@ -1,6 +1,7 @@
 #include "world.h"
 #include "component_parsers.h"
 #include "prefab.h"
+#include "world_loader.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -179,14 +180,18 @@ world_instantiate_templates (ecs_world_t *world,
                 {
                   // Partial override: apply only specified fields from
                   // S-expression
-                  static scheme_state_t *override_state = NULL;
-                  if (!override_state)
-                    override_state = hite_scheme_init ();
-                  if (override_state)
+                  // Use the same scheme state that was used to load the world
+                  scheme_state_t *world_state = world_loader_get_scheme_state ();
+                  if (world_state)
                     {
-                      apply_component_override (override_state, comp_name,
+                      apply_component_override (world_state, comp_name,
                                                 tmpl->components[j].sexp,
                                                 existing);
+                    }
+                  else
+                    {
+                      printf ("[World] Warning: Failed to get world scheme "
+                              "state for override\n");
                     }
                 }
               else if (comp_data)

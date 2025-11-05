@@ -539,3 +539,11 @@ world_definition_free (world_definition_t *definition)
       free (definition->entity_templates);
     }
 }
+
+// Get the scheme state used for world loading
+scheme_state_t *
+world_loader_get_scheme_state (void)
+{
+  world_loader_init ();
+  return g_world_scheme_state;
+}
