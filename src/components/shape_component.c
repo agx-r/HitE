@@ -232,7 +232,6 @@ shape_component_start (ecs_world_t *world, entity_id_t entity,
                        void *component_data)
 {
   (void)world;
-  (void)entity;
 
   shape_component_t *shape = (shape_component_t *)component_data;
 

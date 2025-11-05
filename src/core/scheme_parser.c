@@ -1,56 +1,64 @@
 #include "scheme_parser.h"
-#include "../../external/s7/s7.h"
+#include "../../external/tinyscheme/scheme.h"
+#include "../../external/tinyscheme/scheme-private.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-// Initialize S7 Scheme interpreter
+// Initialize TinyScheme interpreter
 scheme_state_t *
-scheme_init (void)
+hite_scheme_init (void)
 {
   scheme_state_t *state = calloc (1, sizeof (scheme_state_t));
   if (!state)
     return NULL;
 
-  state->sc = s7_init ();
+  state->sc = scheme_init_new ();
   if (!state->sc)
     {
       free (state);
       return NULL;
     }
 
-  printf ("[S7 Scheme] Initialized (version %s)\n", S7_VERSION);
+  scheme_set_input_port_file (state->sc, stdin);
+  scheme_set_output_port_file (state->sc, stdout);
+  
+  // Load init.scm for basic functionality
+  // Note: TinyScheme needs init.scm for many built-in functions
+  // For now, we'll skip it as we only need basic read/eval
+  // If init.scm is needed, load it from a known path
+  
+  printf ("[TinyScheme] Initialized (version 1.42)\n");
 
   return state;
 }
 
-// Shutdown S7 Scheme interpreter
+// Shutdown TinyScheme interpreter
 void
-scheme_shutdown (scheme_state_t *state)
+hite_scheme_shutdown (scheme_state_t *state)
 {
   if (!state)
     return;
 
   if (state->sc)
     {
-      // S7 doesn't have explicit shutdown, memory is managed internally
-      // Just free our wrapper
+      scheme_deinit (state->sc);
+      free (state->sc);
     }
 
   free (state);
 }
 
-// Load and evaluate Scheme file
+// Load and READ (not evaluate) Scheme file
 result_t
-scheme_load_file (scheme_state_t *state, const char *filepath,
-                  s7_pointer *out_result)
+hite_scheme_load_file (scheme_state_t *state, const char *filepath,
+                       pointer *out_result)
 {
   if (!state || !state->sc || !filepath)
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
 
-  // Use s7_load to load the file
-  // But we want to READ, not EVAL, so we'll read the file and use s7_read
+  // Open and read file
   FILE *file = fopen (filepath, "r");
   if (!file)
     {
@@ -74,11 +82,24 @@ scheme_load_file (scheme_state_t *state, const char *filepath,
   source[bytes_read] = '\0';
   fclose (file);
 
-  // Create a string port and read from it (don't evaluate)
-  s7_pointer str_port = s7_open_input_string (state->sc, source);
-  s7_pointer result = s7_read (state->sc, str_port);
-  s7_close_input_port (state->sc, str_port);
+  // Use scheme_load_string with a wrapper that quotes the expression
+  // Build: (quote <content>)
+  char *wrapper = malloc (strlen(source) + 20);
+  if (!wrapper)
+    {
+      free (source);
+      return RESULT_ERROR (RESULT_ERROR_ALLOCATION, "Failed to allocate memory");
+    }
   
+  sprintf (wrapper, "(quote %s)", source);
+  
+  // Load and evaluate the quoted expression
+  scheme_load_string (state->sc, wrapper);
+  
+  // Get the result - it will be the quoted data structure
+  pointer result = state->sc->value;
+  
+  free (wrapper);
   free (source);
 
   if (out_result)
@@ -89,16 +110,14 @@ scheme_load_file (scheme_state_t *state, const char *filepath,
 
 // Evaluate Scheme string
 result_t
-scheme_eval_string (scheme_state_t *state, const char *source,
-                    s7_pointer *out_result)
+hite_scheme_eval_string (scheme_state_t *state, const char *source,
+                         pointer *out_result)
 {
   if (!state || !state->sc || !source)
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
 
-  s7_pointer result = s7_eval_c_string (state->sc, source);
-
-  // S7 doesn't return NULL on error, it returns an error object
-  // We'll just return the result as-is
+  scheme_load_string (state->sc, source);
+  pointer result = state->sc->value;
 
   if (out_result)
     *out_result = result;
@@ -108,128 +127,162 @@ scheme_eval_string (scheme_state_t *state, const char *source,
 
 // Type checking wrappers
 bool
-s7_is_list_wrapper (scheme_state_t *state, s7_pointer obj)
+scheme_is_list_wrapper (scheme_state_t *state, pointer obj)
 {
-  return s7_is_list (state->sc, obj);
+  if (!state || !obj)
+    return false;
+  
+  // In TinyScheme, a list is either NIL or a pair
+  if (obj == state->sc->NIL)
+    return true;
+  
+  return is_pair (obj);
 }
 
 bool
-s7_is_pair_wrapper (scheme_state_t *state, s7_pointer obj)
+scheme_is_pair_wrapper (scheme_state_t *state, pointer obj)
 {
-  return s7_is_pair (obj);
+  (void)state;
+  return is_pair (obj);
 }
 
 bool
-s7_is_symbol_wrapper (scheme_state_t *state, s7_pointer obj)
+scheme_is_symbol_wrapper (scheme_state_t *state, pointer obj)
 {
-  return s7_is_symbol (obj);
+  (void)state;
+  return is_symbol (obj);
 }
 
 bool
-s7_is_string_wrapper (scheme_state_t *state, s7_pointer obj)
+scheme_is_string_wrapper (scheme_state_t *state, pointer obj)
 {
-  return s7_is_string (obj);
+  (void)state;
+  return is_string (obj);
 }
 
 bool
-s7_is_number_wrapper (scheme_state_t *state, s7_pointer obj)
+scheme_is_number_wrapper (scheme_state_t *state, pointer obj)
 {
-  return s7_is_number (obj);
+  (void)state;
+  return is_number (obj);
 }
 
 bool
-s7_is_boolean_wrapper (scheme_state_t *state, s7_pointer obj)
+scheme_is_boolean_wrapper (scheme_state_t *state, pointer obj)
 {
-  return s7_is_boolean (obj);
+  if (!state || !obj)
+    return false;
+  
+  return (obj == state->sc->T || obj == state->sc->F);
 }
 
 bool
-s7_is_null_wrapper (scheme_state_t *state, s7_pointer obj)
+scheme_is_null_wrapper (scheme_state_t *state, pointer obj)
 {
-  return s7_is_null (state->sc, obj);
+  if (!state || !obj)
+    return false;
+  
+  return (obj == state->sc->NIL);
 }
 
 // Value extraction wrappers
 const char *
-s7_symbol_name_wrapper (scheme_state_t *state, s7_pointer obj)
+scheme_symbol_name_wrapper (scheme_state_t *state, pointer obj)
 {
-  return s7_symbol_name (obj);
+  (void)state;
+  return symname (obj);
 }
 
 const char *
-s7_string_wrapper (scheme_state_t *state, s7_pointer obj)
+scheme_string_wrapper (scheme_state_t *state, pointer obj)
 {
-  return s7_string (obj);
+  (void)state;
+  return string_value (obj);
 }
 
 double
-s7_number_wrapper (scheme_state_t *state, s7_pointer obj)
+scheme_number_wrapper (scheme_state_t *state, pointer obj)
 {
-  if (s7_is_real (obj))
-    return s7_real (obj);
-  if (s7_is_integer (obj))
-    return (double)s7_integer (obj);
+  (void)state;
+  if (is_real (obj))
+    return rvalue (obj);
+  if (is_integer (obj))
+    return (double)ivalue (obj);
   return 0.0;
 }
 
 bool
-s7_boolean_wrapper (scheme_state_t *state, s7_pointer obj)
+scheme_boolean_wrapper (scheme_state_t *state, pointer obj)
 {
-  return s7_boolean (state->sc, obj);
+  if (!state || !obj)
+    return false;
+  
+  return (obj != state->sc->F);
 }
 
 // List operations wrappers
-s7_pointer
-s7_car_wrapper (scheme_state_t *state, s7_pointer obj)
+pointer
+scheme_car_wrapper (scheme_state_t *state, pointer obj)
 {
-  return s7_car (obj);
+  (void)state;
+  return pair_car (obj);
 }
 
-s7_pointer
-s7_cdr_wrapper (scheme_state_t *state, s7_pointer obj)
+pointer
+scheme_cdr_wrapper (scheme_state_t *state, pointer obj)
 {
-  return s7_cdr (obj);
+  (void)state;
+  return pair_cdr (obj);
 }
 
-s7_pointer
-s7_cadr_wrapper (scheme_state_t *state, s7_pointer obj)
+pointer
+scheme_cadr_wrapper (scheme_state_t *state, pointer obj)
 {
-  return s7_cadr (obj);
+  return pair_car (pair_cdr (obj));
 }
 
 int
-s7_list_length_wrapper (scheme_state_t *state, s7_pointer obj)
+scheme_list_length_wrapper (scheme_state_t *state, pointer obj)
 {
-  return s7_list_length (state->sc, obj);
+  return list_length (state->sc, obj);
 }
 
-s7_pointer
-s7_list_ref_wrapper (scheme_state_t *state, s7_pointer obj, int index)
+pointer
+scheme_list_ref_wrapper (scheme_state_t *state, pointer obj, int index)
 {
-  return s7_list_ref (state->sc, obj, index);
+  pointer current = obj;
+  for (int i = 0; i < index && is_pair (current); i++)
+    {
+      current = pair_cdr (current);
+    }
+  
+  if (is_pair (current))
+    return pair_car (current);
+  
+  return state->sc->NIL;
 }
 
 // Find field in list like (field-name value...)
-s7_pointer
-s7_find_field (scheme_state_t *state, s7_pointer list,
+pointer
+scheme_find_field (scheme_state_t *state, pointer list,
                const char *field_name)
 {
   if (!state || !list || !field_name)
     return NULL;
 
   // Iterate through list
-  s7_pointer current = list;
-  while (s7_is_pair (current))
+  pointer current = list;
+  while (is_pair (current))
     {
-      s7_pointer elem = s7_car (current);
+      pointer elem = pair_car (current);
 
       // Check if element is a list starting with field_name
-      if (s7_is_pair (elem))
+      if (is_pair (elem))
         {
-          s7_pointer name = s7_car (elem);
-          if (s7_is_symbol (name))
+          pointer name = pair_car (elem);
+          if (is_symbol (name))
             {
-              const char *sym_name = s7_symbol_name (name);
+              const char *sym_name = symname (name);
               if (strcmp (sym_name, field_name) == 0)
                 {
                   return elem; // Return entire field list
@@ -237,7 +290,7 @@ s7_find_field (scheme_state_t *state, s7_pointer list,
             }
         }
 
-      current = s7_cdr (current);
+      current = pair_cdr (current);
     }
 
   return NULL;
@@ -245,31 +298,31 @@ s7_find_field (scheme_state_t *state, s7_pointer list,
 
 // Parse vec3 from list like (x y z)
 result_t
-s7_parse_vec3 (scheme_state_t *state, s7_pointer obj, vec3_t *out)
+scheme_parse_vec3 (scheme_state_t *state, pointer obj, vec3_t *out)
 {
   if (!state || !obj || !out)
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
 
-  if (!s7_is_pair (obj))
+  if (!is_pair (obj))
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                          "Expected list for vec3");
 
-  int len = s7_list_length (state->sc, obj);
+  int len = list_length (state->sc, obj);
   if (len < 3)
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                          "vec3 requires 3 values");
 
-  s7_pointer x_obj = s7_car (obj);
-  s7_pointer y_obj = s7_cadr (obj);
-  s7_pointer z_obj = s7_list_ref (state->sc, obj, 2);
+  pointer x_obj = pair_car (obj);
+  pointer y_obj = scheme_cadr_wrapper (state, obj);
+  pointer z_obj = scheme_list_ref_wrapper (state, obj, 2);
 
-  if (!s7_is_number (x_obj) || !s7_is_number (y_obj) || !s7_is_number (z_obj))
+  if (!is_number (x_obj) || !is_number (y_obj) || !is_number (z_obj))
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                          "vec3 values must be numbers");
 
-  out->x = (float)s7_number_wrapper (state, x_obj);
-  out->y = (float)s7_number_wrapper (state, y_obj);
-  out->z = (float)s7_number_wrapper (state, z_obj);
+  out->x = (float)scheme_number_wrapper (state, x_obj);
+  out->y = (float)scheme_number_wrapper (state, y_obj);
+  out->z = (float)scheme_number_wrapper (state, z_obj);
   out->_padding = 0.0f;
 
   return RESULT_SUCCESS;
@@ -277,64 +330,64 @@ s7_parse_vec3 (scheme_state_t *state, s7_pointer obj, vec3_t *out)
 
 // Parse vec4 from list like (r g b a)
 result_t
-s7_parse_vec4 (scheme_state_t *state, s7_pointer obj, vec4_t *out)
+scheme_parse_vec4 (scheme_state_t *state, pointer obj, vec4_t *out)
 {
   if (!state || !obj || !out)
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
 
-  if (!s7_is_pair (obj))
+  if (!is_pair (obj))
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                          "Expected list for vec4");
 
-  int len = s7_list_length (state->sc, obj);
+  int len = list_length (state->sc, obj);
   if (len < 4)
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                          "vec4 requires 4 values");
 
-  s7_pointer x_obj = s7_car (obj);
-  s7_pointer y_obj = s7_cadr (obj);
-  s7_pointer z_obj = s7_list_ref (state->sc, obj, 2);
-  s7_pointer w_obj = s7_list_ref (state->sc, obj, 3);
+  pointer x_obj = pair_car (obj);
+  pointer y_obj = scheme_cadr_wrapper (state, obj);
+  pointer z_obj = scheme_list_ref_wrapper (state, obj, 2);
+  pointer w_obj = scheme_list_ref_wrapper (state, obj, 3);
 
-  if (!s7_is_number (x_obj) || !s7_is_number (y_obj) || !s7_is_number (z_obj)
-      || !s7_is_number (w_obj))
+  if (!is_number (x_obj) || !is_number (y_obj) || !is_number (z_obj)
+      || !is_number (w_obj))
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                          "vec4 values must be numbers");
 
-  out->x = (float)s7_number_wrapper (state, x_obj);
-  out->y = (float)s7_number_wrapper (state, y_obj);
-  out->z = (float)s7_number_wrapper (state, z_obj);
-  out->w = (float)s7_number_wrapper (state, w_obj);
+  out->x = (float)scheme_number_wrapper (state, x_obj);
+  out->y = (float)scheme_number_wrapper (state, y_obj);
+  out->z = (float)scheme_number_wrapper (state, z_obj);
+  out->w = (float)scheme_number_wrapper (state, w_obj);
 
   return RESULT_SUCCESS;
 }
 
 // Parse float from number
 result_t
-s7_parse_float (scheme_state_t *state, s7_pointer obj, float *out)
+scheme_parse_float (scheme_state_t *state, pointer obj, float *out)
 {
   if (!state || !obj || !out)
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
 
-  if (!s7_is_number (obj))
+  if (!is_number (obj))
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                          "Expected number for float");
 
-  *out = (float)s7_number_wrapper (state, obj);
+  *out = (float)scheme_number_wrapper (state, obj);
   return RESULT_SUCCESS;
 }
 
 // Parse bool from boolean
 result_t
-s7_parse_bool (scheme_state_t *state, s7_pointer obj, bool *out)
+scheme_parse_bool (scheme_state_t *state, pointer obj, bool *out)
 {
   if (!state || !obj || !out)
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
 
-  if (!s7_is_boolean (obj))
+  if (!scheme_is_boolean_wrapper (state, obj))
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                          "Expected boolean for bool");
 
-  *out = s7_boolean_wrapper (state, obj);
+  *out = scheme_boolean_wrapper (state, obj);
   return RESULT_SUCCESS;
 }

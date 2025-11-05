@@ -27,12 +27,13 @@ typedef struct
   size_t additional_component_count;
 } prefab_instance_t;
 
-// Entity template (fully defined in world file, no prefab)
+// Entity template (can be from prefab or inline)
 typedef struct
 {
   const char *name;
+  const char *prefab_name; // If set, instantiate from this prefab
 
-  // Components to add
+  // Components to add or override
   struct
   {
     const char *component_name;

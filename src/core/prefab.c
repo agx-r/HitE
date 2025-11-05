@@ -27,11 +27,11 @@ prefab_system_create (void)
       return NULL;
     }
 
-  // Initialize S7 Scheme
-  g_scheme_state = scheme_init ();
+  // Initialize TinyScheme
+  g_scheme_state = hite_scheme_init ();
   if (!g_scheme_state)
     {
-      printf ("[Prefab] Warning: Failed to initialize S7 Scheme\n");
+      printf ("[Prefab] Warning: Failed to initialize TinyScheme\n");
     }
 
   return system;
@@ -51,10 +51,10 @@ prefab_system_destroy (prefab_system_t *system)
   free (system->prefabs);
   free (system);
 
-  // Shutdown S7 Scheme
+  // Shutdown TinyScheme
   if (g_scheme_state)
     {
-      scheme_shutdown (g_scheme_state);
+      hite_scheme_shutdown (g_scheme_state);
       g_scheme_state = NULL;
     }
 }
@@ -135,7 +135,7 @@ prefab_cleanup (prefab_t *prefab)
     }
 }
 
-// Load prefab from Scheme file using S7
+// Load prefab from Scheme file using TinyScheme
 result_t
 prefab_load (prefab_system_t *system, const char *filepath,
              prefab_t **out_prefab)
@@ -148,30 +148,30 @@ prefab_load (prefab_system_t *system, const char *filepath,
   if (!g_scheme_state)
     {
       return RESULT_ERROR (RESULT_ERROR_DEPENDENCY_MISSING,
-                           "S7 Scheme not initialized");
+                           "TinyScheme not initialized");
     }
 
   // Load and evaluate Scheme file
-  s7_pointer result;
-  result_t load_result = scheme_load_file (g_scheme_state, filepath, &result);
+  pointer result;
+  result_t load_result = hite_scheme_load_file (g_scheme_state, filepath, &result);
   if (load_result.code != RESULT_OK)
     return load_result;
 
   // Verify it's a prefab definition: (prefab ...)
-  if (!s7_is_pair_wrapper (g_scheme_state, result))
+  if (!scheme_is_pair_wrapper (g_scheme_state, result))
     {
       return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                            "Expected prefab definition");
     }
 
-  s7_pointer tag = s7_car_wrapper (g_scheme_state, result);
-  if (!s7_is_symbol_wrapper (g_scheme_state, tag))
+  pointer tag = scheme_car_wrapper (g_scheme_state, result);
+  if (!scheme_is_symbol_wrapper (g_scheme_state, tag))
     {
       return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                            "Expected symbol 'prefab'");
     }
 
-  const char *tag_name = s7_symbol_name_wrapper (g_scheme_state, tag);
+  const char *tag_name = scheme_symbol_name_wrapper (g_scheme_state, tag);
   if (!tag_name || strcmp (tag_name, "prefab") != 0)
     {
       return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
@@ -197,36 +197,36 @@ prefab_load (prefab_system_t *system, const char *filepath,
   memset (prefab, 0, sizeof (prefab_t));
 
   // Parse fields: (name "..."), (description "..."), (component ...)
-  s7_pointer current = s7_cdr_wrapper (g_scheme_state, result);
+  pointer current = scheme_cdr_wrapper (g_scheme_state, result);
 
-  while (s7_is_pair_wrapper (g_scheme_state, current))
+  while (scheme_is_pair_wrapper (g_scheme_state, current))
     {
-      s7_pointer field = s7_car_wrapper (g_scheme_state, current);
+      pointer field = scheme_car_wrapper (g_scheme_state, current);
 
-      if (s7_is_pair_wrapper (g_scheme_state, field))
+      if (scheme_is_pair_wrapper (g_scheme_state, field))
         {
-          s7_pointer field_name_obj = s7_car_wrapper (g_scheme_state, field);
-          if (!s7_is_symbol_wrapper (g_scheme_state, field_name_obj))
+          pointer field_name_obj = scheme_car_wrapper (g_scheme_state, field);
+          if (!scheme_is_symbol_wrapper (g_scheme_state, field_name_obj))
             {
-              current = s7_cdr_wrapper (g_scheme_state, current);
+              current = scheme_cdr_wrapper (g_scheme_state, current);
               continue;
             }
 
           const char *field_name
-              = s7_symbol_name_wrapper (g_scheme_state, field_name_obj);
+              = scheme_symbol_name_wrapper (g_scheme_state, field_name_obj);
           if (!field_name)
             {
-              current = s7_cdr_wrapper (g_scheme_state, current);
+              current = scheme_cdr_wrapper (g_scheme_state, current);
               continue;
             }
 
           // Parse name
           if (strcmp (field_name, "name") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (g_scheme_state, field);
-              if (s7_is_string_wrapper (g_scheme_state, value))
+              pointer value = scheme_cadr_wrapper (g_scheme_state, field);
+              if (scheme_is_string_wrapper (g_scheme_state, value))
                 {
-                  const char *name = s7_string_wrapper (g_scheme_state, value);
+                  const char *name = scheme_string_wrapper (g_scheme_state, value);
                   if (name)
                     prefab->name = strdup (name);
                 }
@@ -234,10 +234,10 @@ prefab_load (prefab_system_t *system, const char *filepath,
           // Parse description
           else if (strcmp (field_name, "description") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (g_scheme_state, field);
-              if (s7_is_string_wrapper (g_scheme_state, value))
+              pointer value = scheme_cadr_wrapper (g_scheme_state, field);
+              if (scheme_is_string_wrapper (g_scheme_state, value))
                 {
-                  const char *desc = s7_string_wrapper (g_scheme_state, value);
+                  const char *desc = scheme_string_wrapper (g_scheme_state, value);
                   if (desc)
                     prefab->description = strdup (desc);
                 }
@@ -246,16 +246,16 @@ prefab_load (prefab_system_t *system, const char *filepath,
           else if (strcmp (field_name, "component") == 0)
             {
               // Get component name
-              s7_pointer comp_name_obj = s7_cadr_wrapper (g_scheme_state, field);
-              if (!s7_is_string_wrapper (g_scheme_state, comp_name_obj))
+              pointer comp_name_obj = scheme_cadr_wrapper (g_scheme_state, field);
+              if (!scheme_is_string_wrapper (g_scheme_state, comp_name_obj))
                 {
                   printf ("[Prefab] Warning: Component name must be a string\n");
-                  current = s7_cdr_wrapper (g_scheme_state, current);
+                  current = scheme_cdr_wrapper (g_scheme_state, current);
                   continue;
                 }
 
               const char *comp_name
-                  = s7_string_wrapper (g_scheme_state, comp_name_obj);
+                  = scheme_string_wrapper (g_scheme_state, comp_name_obj);
               printf ("[Prefab] Parsing component: %s\n", comp_name);
 
               // Parse component data based on type
@@ -343,7 +343,7 @@ prefab_load (prefab_system_t *system, const char *filepath,
             }
         }
 
-      current = s7_cdr_wrapper (g_scheme_state, current);
+      current = scheme_cdr_wrapper (g_scheme_state, current);
     }
 
   system->prefab_count++;
@@ -351,7 +351,7 @@ prefab_load (prefab_system_t *system, const char *filepath,
   if (out_prefab)
     *out_prefab = prefab;
 
-  printf ("[Prefab] Loaded '%s' from %s (S7 Scheme, %zu components)\n",
+  printf ("[Prefab] Loaded '%s' from %s (TinyScheme, %zu components)\n",
           prefab->name ? prefab->name : "Unnamed", filepath,
           prefab->component_count);
 

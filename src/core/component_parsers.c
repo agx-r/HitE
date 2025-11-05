@@ -4,7 +4,7 @@
 
 // Helper: Parse shape type from symbol (e.g., 'box, 'sphere, 'torus)
 result_t
-parse_shape_type (scheme_state_t *state, s7_pointer sexp,
+parse_shape_type (scheme_state_t *state, pointer sexp,
                   shape_type_t *out_type)
 {
   if (!state || !sexp || !out_type)
@@ -13,14 +13,14 @@ parse_shape_type (scheme_state_t *state, s7_pointer sexp,
   // Type can be either a symbol or a string
   const char *type_str = NULL;
   
-  if (s7_is_string_wrapper (state, sexp))
+  if (scheme_is_string_wrapper (state, sexp))
     {
-      type_str = s7_string_wrapper (state, sexp);
+      type_str = scheme_string_wrapper (state, sexp);
       printf ("[Component Parser] Type is a string: %s\n", type_str);
     }
-  else if (s7_is_symbol_wrapper (state, sexp))
+  else if (scheme_is_symbol_wrapper (state, sexp))
     {
-      type_str = s7_symbol_name_wrapper (state, sexp);
+      type_str = scheme_symbol_name_wrapper (state, sexp);
       printf ("[Component Parser] Type is a symbol: %s\n", type_str);
     }
   else
@@ -59,7 +59,7 @@ parse_shape_type (scheme_state_t *state, s7_pointer sexp,
 
 // Parse shape component from (component "shape" ...)
 result_t
-parse_shape_component (scheme_state_t *state, s7_pointer sexp,
+parse_shape_component (scheme_state_t *state, pointer sexp,
                        shape_component_t *out_component)
 {
   if (!state || !sexp || !out_component)
@@ -79,33 +79,33 @@ parse_shape_component (scheme_state_t *state, s7_pointer sexp,
   out_component->dirty = true;
 
   // sexp should be (component "shape" ...)
-  if (!s7_is_pair_wrapper (state, sexp))
+  if (!scheme_is_pair_wrapper (state, sexp))
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                          "Invalid component format");
 
   // Iterate through fields (skip first two: 'component' and "shape")
-  s7_pointer current = s7_cdr_wrapper (state, sexp);
-  if (s7_is_pair_wrapper (state, current))
-    current = s7_cdr_wrapper (state, current); // Skip component name
+  pointer current = scheme_cdr_wrapper (state, sexp);
+  if (scheme_is_pair_wrapper (state, current))
+    current = scheme_cdr_wrapper (state, current); // Skip component name
 
-  while (s7_is_pair_wrapper (state, current))
+  while (scheme_is_pair_wrapper (state, current))
     {
-      s7_pointer field = s7_car_wrapper (state, current);
+      pointer field = scheme_car_wrapper (state, current);
 
-      if (s7_is_pair_wrapper (state, field))
+      if (scheme_is_pair_wrapper (state, field))
         {
-          s7_pointer field_name_obj = s7_car_wrapper (state, field);
-          if (!s7_is_symbol_wrapper (state, field_name_obj))
+          pointer field_name_obj = scheme_car_wrapper (state, field);
+          if (!scheme_is_symbol_wrapper (state, field_name_obj))
             {
-              current = s7_cdr_wrapper (state, current);
+              current = scheme_cdr_wrapper (state, current);
               continue;
             }
 
           const char *field_name
-              = s7_symbol_name_wrapper (state, field_name_obj);
+              = scheme_symbol_name_wrapper (state, field_name_obj);
           if (!field_name)
             {
-              current = s7_cdr_wrapper (state, current);
+              current = scheme_cdr_wrapper (state, current);
               continue;
             }
 
@@ -113,7 +113,7 @@ parse_shape_component (scheme_state_t *state, s7_pointer sexp,
           if (strcmp (field_name, "type") == 0)
             {
               // field is (type "torus"), get the value after 'type'
-              s7_pointer type_value = s7_car_wrapper (state, s7_cdr_wrapper (state, field));
+              pointer type_value = scheme_car_wrapper (state, scheme_cdr_wrapper (state, field));
               result_t res
                   = parse_shape_type (state, type_value, &out_component->type);
               if (res.code != RESULT_OK)
@@ -122,8 +122,8 @@ parse_shape_component (scheme_state_t *state, s7_pointer sexp,
           // Parse position (position x y z)
           else if (strcmp (field_name, "position") == 0)
             {
-              s7_pointer pos_list = s7_cdr_wrapper (state, field);
-              result_t res = s7_parse_vec3 (state, pos_list,
+              pointer pos_list = scheme_cdr_wrapper (state, field);
+              result_t res = scheme_parse_vec3 (state, pos_list,
                                             &out_component->transform.position);
               if (res.code != RESULT_OK)
                 printf ("[Component Parser] Warning parsing position: %s\n",
@@ -132,9 +132,9 @@ parse_shape_component (scheme_state_t *state, s7_pointer sexp,
           // Parse dimensions
           else if (strcmp (field_name, "dimensions") == 0)
             {
-              s7_pointer dim_list = s7_cdr_wrapper (state, field);
+              pointer dim_list = scheme_cdr_wrapper (state, field);
               result_t res
-                  = s7_parse_vec3 (state, dim_list, &out_component->dimensions);
+                  = scheme_parse_vec3 (state, dim_list, &out_component->dimensions);
               if (res.code != RESULT_OK)
                 printf ("[Component Parser] Warning parsing dimensions: %s\n",
                         res.message);
@@ -142,9 +142,9 @@ parse_shape_component (scheme_state_t *state, s7_pointer sexp,
           // Parse color
           else if (strcmp (field_name, "color") == 0)
             {
-              s7_pointer color_list = s7_cdr_wrapper (state, field);
+              pointer color_list = scheme_cdr_wrapper (state, field);
               result_t res
-                  = s7_parse_vec4 (state, color_list, &out_component->color);
+                  = scheme_parse_vec4 (state, color_list, &out_component->color);
               if (res.code != RESULT_OK)
                 printf ("[Component Parser] Warning parsing color: %s\n",
                         res.message);
@@ -152,14 +152,14 @@ parse_shape_component (scheme_state_t *state, s7_pointer sexp,
           // Parse visible
           else if (strcmp (field_name, "visible") == 0)
             {
-              s7_pointer visible_value = s7_cadr_wrapper (state, field);
-              if (s7_is_boolean_wrapper (state, visible_value))
+              pointer visible_value = scheme_cadr_wrapper (state, field);
+              if (scheme_is_boolean_wrapper (state, visible_value))
                 out_component->visible
-                    = s7_boolean_wrapper (state, visible_value);
+                    = scheme_boolean_wrapper (state, visible_value);
             }
         }
 
-      current = s7_cdr_wrapper (state, current);
+      current = scheme_cdr_wrapper (state, current);
     }
 
   return RESULT_SUCCESS;
@@ -167,7 +167,7 @@ parse_shape_component (scheme_state_t *state, s7_pointer sexp,
 
 // Parse camera component from (component "camera" ...)
 result_t
-parse_camera_component (scheme_state_t *state, s7_pointer sexp,
+parse_camera_component (scheme_state_t *state, pointer sexp,
                         camera_component_t *out_component)
 {
   if (!state || !sexp || !out_component)
@@ -184,77 +184,77 @@ parse_camera_component (scheme_state_t *state, s7_pointer sexp,
   out_component->is_active = true;
 
   // Skip 'component' and "camera"
-  s7_pointer current = s7_cdr_wrapper (state, sexp);
-  if (s7_is_pair_wrapper (state, current))
-    current = s7_cdr_wrapper (state, current);
+  pointer current = scheme_cdr_wrapper (state, sexp);
+  if (scheme_is_pair_wrapper (state, current))
+    current = scheme_cdr_wrapper (state, current);
 
-  while (s7_is_pair_wrapper (state, current))
+  while (scheme_is_pair_wrapper (state, current))
     {
-      s7_pointer field = s7_car_wrapper (state, current);
+      pointer field = scheme_car_wrapper (state, current);
 
-      if (s7_is_pair_wrapper (state, field))
+      if (scheme_is_pair_wrapper (state, field))
         {
-          s7_pointer field_name_obj = s7_car_wrapper (state, field);
-          if (!s7_is_symbol_wrapper (state, field_name_obj))
+          pointer field_name_obj = scheme_car_wrapper (state, field);
+          if (!scheme_is_symbol_wrapper (state, field_name_obj))
             {
-              current = s7_cdr_wrapper (state, current);
+              current = scheme_cdr_wrapper (state, current);
               continue;
             }
 
           const char *field_name
-              = s7_symbol_name_wrapper (state, field_name_obj);
+              = scheme_symbol_name_wrapper (state, field_name_obj);
           if (!field_name)
             {
-              current = s7_cdr_wrapper (state, current);
+              current = scheme_cdr_wrapper (state, current);
               continue;
             }
 
           // Parse position
           if (strcmp (field_name, "position") == 0)
             {
-              s7_pointer pos_list = s7_cdr_wrapper (state, field);
-              s7_parse_vec3 (state, pos_list, &out_component->position);
+              pointer pos_list = scheme_cdr_wrapper (state, field);
+              scheme_parse_vec3 (state, pos_list, &out_component->position);
             }
           // Parse direction
           else if (strcmp (field_name, "direction") == 0)
             {
-              s7_pointer dir_list = s7_cdr_wrapper (state, field);
-              s7_parse_vec3 (state, dir_list, &out_component->direction);
+              pointer dir_list = scheme_cdr_wrapper (state, field);
+              scheme_parse_vec3 (state, dir_list, &out_component->direction);
             }
           // Parse up
           else if (strcmp (field_name, "up") == 0)
             {
-              s7_pointer up_list = s7_cdr_wrapper (state, field);
-              s7_parse_vec3 (state, up_list, &out_component->up);
+              pointer up_list = scheme_cdr_wrapper (state, field);
+              scheme_parse_vec3 (state, up_list, &out_component->up);
             }
           // Parse fov
           else if (strcmp (field_name, "fov") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (state, field);
-              s7_parse_float (state, value, &out_component->fov);
+              pointer value = scheme_cadr_wrapper (state, field);
+              scheme_parse_float (state, value, &out_component->fov);
             }
           // Parse near-plane
           else if (strcmp (field_name, "near-plane") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (state, field);
-              s7_parse_float (state, value, &out_component->near_plane);
+              pointer value = scheme_cadr_wrapper (state, field);
+              scheme_parse_float (state, value, &out_component->near_plane);
             }
           // Parse far-plane
           else if (strcmp (field_name, "far-plane") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (state, field);
-              s7_parse_float (state, value, &out_component->far_plane);
+              pointer value = scheme_cadr_wrapper (state, field);
+              scheme_parse_float (state, value, &out_component->far_plane);
             }
           // Parse active
           else if (strcmp (field_name, "active") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (state, field);
-              if (s7_is_boolean_wrapper (state, value))
-                out_component->is_active = s7_boolean_wrapper (state, value);
+              pointer value = scheme_cadr_wrapper (state, field);
+              if (scheme_is_boolean_wrapper (state, value))
+                out_component->is_active = scheme_boolean_wrapper (state, value);
             }
         }
 
-      current = s7_cdr_wrapper (state, current);
+      current = scheme_cdr_wrapper (state, current);
     }
 
   return RESULT_SUCCESS;
@@ -262,7 +262,7 @@ parse_camera_component (scheme_state_t *state, s7_pointer sexp,
 
 // Parse camera_movement component
 result_t
-parse_camera_movement_component (scheme_state_t *state, s7_pointer sexp,
+parse_camera_movement_component (scheme_state_t *state, pointer sexp,
                                  camera_movement_component_t *out_component)
 {
   if (!state || !sexp || !out_component)
@@ -274,47 +274,47 @@ parse_camera_movement_component (scheme_state_t *state, s7_pointer sexp,
   out_component->enabled = true;
 
   // Skip 'component' and "camera_movement"
-  s7_pointer current = s7_cdr_wrapper (state, sexp);
-  if (s7_is_pair_wrapper (state, current))
-    current = s7_cdr_wrapper (state, current);
+  pointer current = scheme_cdr_wrapper (state, sexp);
+  if (scheme_is_pair_wrapper (state, current))
+    current = scheme_cdr_wrapper (state, current);
 
-  while (s7_is_pair_wrapper (state, current))
+  while (scheme_is_pair_wrapper (state, current))
     {
-      s7_pointer field = s7_car_wrapper (state, current);
+      pointer field = scheme_car_wrapper (state, current);
 
-      if (s7_is_pair_wrapper (state, field))
+      if (scheme_is_pair_wrapper (state, field))
         {
-          s7_pointer field_name_obj = s7_car_wrapper (state, field);
-          if (!s7_is_symbol_wrapper (state, field_name_obj))
+          pointer field_name_obj = scheme_car_wrapper (state, field);
+          if (!scheme_is_symbol_wrapper (state, field_name_obj))
             {
-              current = s7_cdr_wrapper (state, current);
+              current = scheme_cdr_wrapper (state, current);
               continue;
             }
 
           const char *field_name
-              = s7_symbol_name_wrapper (state, field_name_obj);
+              = scheme_symbol_name_wrapper (state, field_name_obj);
           if (!field_name)
             {
-              current = s7_cdr_wrapper (state, current);
+              current = scheme_cdr_wrapper (state, current);
               continue;
             }
 
           // Parse move-speed
           if (strcmp (field_name, "move-speed") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (state, field);
-              s7_parse_float (state, value, &out_component->move_speed);
+              pointer value = scheme_cadr_wrapper (state, field);
+              scheme_parse_float (state, value, &out_component->move_speed);
             }
           // Parse enabled
           else if (strcmp (field_name, "enabled") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (state, field);
-              if (s7_is_boolean_wrapper (state, value))
-                out_component->enabled = s7_boolean_wrapper (state, value);
+              pointer value = scheme_cadr_wrapper (state, field);
+              if (scheme_is_boolean_wrapper (state, value))
+                out_component->enabled = scheme_boolean_wrapper (state, value);
             }
         }
 
-      current = s7_cdr_wrapper (state, current);
+      current = scheme_cdr_wrapper (state, current);
     }
 
   return RESULT_SUCCESS;
@@ -322,7 +322,7 @@ parse_camera_movement_component (scheme_state_t *state, s7_pointer sexp,
 
 // Parse camera_rotation component
 result_t
-parse_camera_rotation_component (scheme_state_t *state, s7_pointer sexp,
+parse_camera_rotation_component (scheme_state_t *state, pointer sexp,
                                  camera_rotation_component_t *out_component)
 {
   if (!state || !sexp || !out_component)
@@ -340,79 +340,79 @@ parse_camera_rotation_component (scheme_state_t *state, s7_pointer sexp,
   out_component->first_mouse = true;
 
   // Skip 'component' and "camera_rotation"
-  s7_pointer current = s7_cdr_wrapper (state, sexp);
-  if (s7_is_pair_wrapper (state, current))
-    current = s7_cdr_wrapper (state, current);
+  pointer current = scheme_cdr_wrapper (state, sexp);
+  if (scheme_is_pair_wrapper (state, current))
+    current = scheme_cdr_wrapper (state, current);
 
-  while (s7_is_pair_wrapper (state, current))
+  while (scheme_is_pair_wrapper (state, current))
     {
-      s7_pointer field = s7_car_wrapper (state, current);
+      pointer field = scheme_car_wrapper (state, current);
 
-      if (s7_is_pair_wrapper (state, field))
+      if (scheme_is_pair_wrapper (state, field))
         {
-          s7_pointer field_name_obj = s7_car_wrapper (state, field);
-          if (!s7_is_symbol_wrapper (state, field_name_obj))
+          pointer field_name_obj = scheme_car_wrapper (state, field);
+          if (!scheme_is_symbol_wrapper (state, field_name_obj))
             {
-              current = s7_cdr_wrapper (state, current);
+              current = scheme_cdr_wrapper (state, current);
               continue;
             }
 
           const char *field_name
-              = s7_symbol_name_wrapper (state, field_name_obj);
+              = scheme_symbol_name_wrapper (state, field_name_obj);
           if (!field_name)
             {
-              current = s7_cdr_wrapper (state, current);
+              current = scheme_cdr_wrapper (state, current);
               continue;
             }
 
           // Parse yaw
           if (strcmp (field_name, "yaw") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (state, field);
-              s7_parse_float (state, value, &out_component->yaw);
+              pointer value = scheme_cadr_wrapper (state, field);
+              scheme_parse_float (state, value, &out_component->yaw);
             }
           // Parse pitch
           else if (strcmp (field_name, "pitch") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (state, field);
-              s7_parse_float (state, value, &out_component->pitch);
+              pointer value = scheme_cadr_wrapper (state, field);
+              scheme_parse_float (state, value, &out_component->pitch);
             }
           // Parse look-sensitivity
           else if (strcmp (field_name, "look-sensitivity") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (state, field);
-              s7_parse_float (state, value, &out_component->look_sensitivity);
+              pointer value = scheme_cadr_wrapper (state, field);
+              scheme_parse_float (state, value, &out_component->look_sensitivity);
             }
           // Parse max-pitch
           else if (strcmp (field_name, "max-pitch") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (state, field);
-              s7_parse_float (state, value, &out_component->max_pitch);
+              pointer value = scheme_cadr_wrapper (state, field);
+              scheme_parse_float (state, value, &out_component->max_pitch);
             }
           // Parse min-pitch
           else if (strcmp (field_name, "min-pitch") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (state, field);
-              s7_parse_float (state, value, &out_component->min_pitch);
+              pointer value = scheme_cadr_wrapper (state, field);
+              scheme_parse_float (state, value, &out_component->min_pitch);
             }
           // Parse mouse-captured
           else if (strcmp (field_name, "mouse-captured") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (state, field);
-              if (s7_is_boolean_wrapper (state, value))
+              pointer value = scheme_cadr_wrapper (state, field);
+              if (scheme_is_boolean_wrapper (state, value))
                 out_component->mouse_captured
-                    = s7_boolean_wrapper (state, value);
+                    = scheme_boolean_wrapper (state, value);
             }
           // Parse enabled
           else if (strcmp (field_name, "enabled") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (state, field);
-              if (s7_is_boolean_wrapper (state, value))
-                out_component->enabled = s7_boolean_wrapper (state, value);
+              pointer value = scheme_cadr_wrapper (state, field);
+              if (scheme_is_boolean_wrapper (state, value))
+                out_component->enabled = scheme_boolean_wrapper (state, value);
             }
         }
 
-      current = s7_cdr_wrapper (state, current);
+      current = scheme_cdr_wrapper (state, current);
     }
 
   return RESULT_SUCCESS;

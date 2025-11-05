@@ -8,28 +8,28 @@
 #include "scheme_parser.h"
 #include "types.h"
 
-// Parse component data from S7 Scheme objects
+// Parse component data from TinyScheme objects
 
 // Parse shape component from (component "shape" ...)
-result_t parse_shape_component (scheme_state_t *state, s7_pointer sexp,
+result_t parse_shape_component (scheme_state_t *state, pointer sexp,
                                 shape_component_t *out_component);
 
 // Parse camera component from (component "camera" ...)
-result_t parse_camera_component (scheme_state_t *state, s7_pointer sexp,
+result_t parse_camera_component (scheme_state_t *state, pointer sexp,
                                  camera_component_t *out_component);
 
 // Parse camera_movement component from (component "camera_movement" ...)
 result_t parse_camera_movement_component (
-    scheme_state_t *state, s7_pointer sexp,
+    scheme_state_t *state, pointer sexp,
     camera_movement_component_t *out_component);
 
 // Parse camera_rotation component from (component "camera_rotation" ...)
 result_t parse_camera_rotation_component (
-    scheme_state_t *state, s7_pointer sexp,
+    scheme_state_t *state, pointer sexp,
     camera_rotation_component_t *out_component);
 
 // Helper: Parse shape type from symbol (e.g., 'box, 'sphere, 'torus)
-result_t parse_shape_type (scheme_state_t *state, s7_pointer sexp,
+result_t parse_shape_type (scheme_state_t *state, pointer sexp,
                            shape_type_t *out_type);
 
 #endif // HITE_COMPONENT_PARSERS_H

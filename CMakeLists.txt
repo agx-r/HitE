@@ -15,17 +15,25 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -DNDEBUG")
 find_package(Vulkan REQUIRED)
 find_package(glfw3 REQUIRED)
 
-# S7 Scheme library (single-file header library)
-add_library(s7 STATIC external/s7/s7.c)
-target_compile_definitions(s7 PRIVATE
-    WITH_MAIN=0
-    S7_DISABLE_DEPRECATED=1
+# TinyScheme library
+add_library(tinyscheme STATIC external/tinyscheme/scheme.c)
+target_compile_definitions(tinyscheme PRIVATE
+    STANDALONE=0
+    USE_MATH=1
+    USE_CHAR_CLASSIFIERS=1
+    USE_ASCII_NAMES=1
+    USE_STRING_PORTS=1
+    USE_ERROR_HOOK=1
+    USE_TRACING=1
+    USE_COLON_HOOK=1
+    USE_DL=0
+    USE_PLIST=0
+    USE_INTERFACE=0
 )
-target_include_directories(s7 PUBLIC external/s7)
-# Disable warnings for S7 (it's external code)
-target_compile_options(s7 PRIVATE -w)
-# S7 uses some GNU extensions
-target_compile_features(s7 PUBLIC c_std_99)
+target_include_directories(tinyscheme PUBLIC external/tinyscheme)
+# Disable warnings for TinyScheme (it's external code)
+target_compile_options(tinyscheme PRIVATE -w)
+target_compile_features(tinyscheme PUBLIC c_std_99)
 
 # Source files
 file(GLOB_RECURSE SOURCES
@@ -38,14 +46,14 @@ add_executable(hite ${SOURCES})
 
 target_include_directories(hite PRIVATE
     ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/external/s7
+    ${CMAKE_SOURCE_DIR}/external/tinyscheme
     ${Vulkan_INCLUDE_DIRS}
 )
 
 target_link_libraries(hite PRIVATE
     Vulkan::Vulkan
     glfw
-    s7
+    tinyscheme
     m
     dl
 )

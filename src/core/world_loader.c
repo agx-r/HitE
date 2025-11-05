@@ -15,31 +15,31 @@ world_loader_init (void)
 {
   if (!g_world_scheme_state)
     {
-      g_world_scheme_state = scheme_init ();
+      g_world_scheme_state = hite_scheme_init ();
       if (!g_world_scheme_state)
         {
-          printf ("[World Loader] Warning: Failed to initialize S7 Scheme\n");
+          printf ("[World Loader] Warning: Failed to initialize TinyScheme\n");
         }
     }
 }
 
 // Parse component override or definition from Scheme
 static result_t
-parse_component_definition (scheme_state_t *state, s7_pointer comp_sexp,
+parse_component_definition (scheme_state_t *state, pointer comp_sexp,
                             const char **out_name, void **out_data,
                             size_t *out_size)
 {
-  if (!s7_is_pair_wrapper (state, comp_sexp))
+  if (!scheme_is_pair_wrapper (state, comp_sexp))
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                          "Component must be a list");
 
   // Get component name: (component "name" ...)
-  s7_pointer name_obj = s7_cadr_wrapper (state, comp_sexp);
-  if (!s7_is_string_wrapper (state, name_obj))
+  pointer name_obj = scheme_cadr_wrapper (state, comp_sexp);
+  if (!scheme_is_string_wrapper (state, name_obj))
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                          "Component name must be a string");
 
-  const char *comp_name = s7_string_wrapper (state, name_obj);
+  const char *comp_name = scheme_string_wrapper (state, name_obj);
   *out_name = strdup (comp_name);
 
   // Parse component data based on type
@@ -105,45 +105,75 @@ parse_component_definition (scheme_state_t *state, s7_pointer comp_sexp,
   return RESULT_SUCCESS;
 }
 
-// Parse entity template from (entity "name" ...)
+// Parse entity template from (entity ...) or (entity (prefab "name") ...)
 static result_t
-parse_entity_template (scheme_state_t *state, s7_pointer entity_sexp,
+parse_entity_template (scheme_state_t *state, pointer entity_sexp,
                        entity_template_t *out_template)
 {
   memset (out_template, 0, sizeof (entity_template_t));
 
-  if (!s7_is_pair_wrapper (state, entity_sexp))
+  if (!scheme_is_pair_wrapper (state, entity_sexp))
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                          "Entity must be a list");
 
-  // Get entity name: (entity "name" ...)
-  s7_pointer name_obj = s7_cadr_wrapper (state, entity_sexp);
-  if (!s7_is_string_wrapper (state, name_obj))
-    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
-                         "Entity name must be a string");
+  // Start from the first element after 'entity
+  pointer current = scheme_cdr_wrapper (state, entity_sexp);
+  
+  // Check if first element is (prefab "name") or a component
+  if (scheme_is_pair_wrapper (state, current))
+    {
+      pointer first_elem = scheme_car_wrapper (state, current);
+      
+      // Check if it's (prefab "name")
+      if (scheme_is_pair_wrapper (state, first_elem))
+        {
+          pointer first_symbol = scheme_car_wrapper (state, first_elem);
+          if (scheme_is_symbol_wrapper (state, first_symbol))
+            {
+              const char *symbol_name = scheme_symbol_name_wrapper (state, first_symbol);
+              if (strcmp (symbol_name, "prefab") == 0)
+                {
+                  // It's a prefab reference: (entity (prefab "name") ...)
+                  pointer prefab_name_obj = scheme_cadr_wrapper (state, first_elem);
+                  if (scheme_is_string_wrapper (state, prefab_name_obj))
+                    {
+                      out_template->prefab_name = strdup (scheme_string_wrapper (state, prefab_name_obj));
+                    }
+                  // Skip the prefab element
+                  current = scheme_cdr_wrapper (state, current);
+                }
+            }
+        }
+    }
 
-  out_template->name = strdup (s7_string_wrapper (state, name_obj));
+  // Generate a name if not set
+  if (!out_template->name && !out_template->prefab_name)
+    {
+      static int entity_counter = 0;
+      char name_buf[32];
+      snprintf (name_buf, sizeof (name_buf), "entity_%d", entity_counter++);
+      out_template->name = strdup (name_buf);
+    }
 
   // Count components
   size_t component_count = 0;
-  s7_pointer current = s7_cdr_wrapper (state, entity_sexp);
-  current = s7_cdr_wrapper (state, current); // Skip name
+  pointer count_current = current;
 
-  while (s7_is_pair_wrapper (state, current))
+  while (scheme_is_pair_wrapper (state, count_current))
     {
-      s7_pointer field = s7_car_wrapper (state, current);
-      if (s7_is_pair_wrapper (state, field))
+      pointer field = scheme_car_wrapper (state, count_current);
+      if (scheme_is_pair_wrapper (state, field))
         {
-          s7_pointer field_name_obj = s7_car_wrapper (state, field);
-          if (s7_is_symbol_wrapper (state, field_name_obj))
+          pointer field_name_obj = scheme_car_wrapper (state, field);
+          if (scheme_is_symbol_wrapper (state, field_name_obj))
             {
               const char *field_name
-                  = s7_symbol_name_wrapper (state, field_name_obj);
+                  = scheme_symbol_name_wrapper (state, field_name_obj);
               if (strcmp (field_name, "component") == 0)
                 component_count++;
             }
         }
-      current = s7_cdr_wrapper (state, current);
+      count_current = scheme_cdr_wrapper (state, count_current);
     }
 
   // Allocate components
@@ -155,20 +185,17 @@ parse_entity_template (scheme_state_t *state, s7_pointer entity_sexp,
       out_template->component_count = 0;
     }
 
-  // Parse components
-  current = s7_cdr_wrapper (state, entity_sexp);
-  current = s7_cdr_wrapper (state, current); // Skip name
-
-  while (s7_is_pair_wrapper (state, current))
+  // Parse components (current is already positioned after prefab if it existed)
+  while (scheme_is_pair_wrapper (state, current))
     {
-      s7_pointer field = s7_car_wrapper (state, current);
-      if (s7_is_pair_wrapper (state, field))
+      pointer field = scheme_car_wrapper (state, current);
+      if (scheme_is_pair_wrapper (state, field))
         {
-          s7_pointer field_name_obj = s7_car_wrapper (state, field);
-          if (s7_is_symbol_wrapper (state, field_name_obj))
+          pointer field_name_obj = scheme_car_wrapper (state, field);
+          if (scheme_is_symbol_wrapper (state, field_name_obj))
             {
               const char *field_name
-                  = s7_symbol_name_wrapper (state, field_name_obj);
+                  = scheme_symbol_name_wrapper (state, field_name_obj);
               if (strcmp (field_name, "component") == 0)
                 {
                   const char *comp_name;
@@ -193,7 +220,7 @@ parse_entity_template (scheme_state_t *state, s7_pointer entity_sexp,
                 }
             }
         }
-      current = s7_cdr_wrapper (state, current);
+      current = scheme_cdr_wrapper (state, current);
     }
 
   return RESULT_SUCCESS;
@@ -210,64 +237,64 @@ world_load_from_file (const char *filepath, world_definition_t *out_definition)
 
   if (!g_world_scheme_state)
     return RESULT_ERROR (RESULT_ERROR_DEPENDENCY_MISSING,
-                         "S7 Scheme not initialized");
+                         "TinyScheme not initialized");
 
   memset (out_definition, 0, sizeof (world_definition_t));
 
   // Load and evaluate Scheme file
-  s7_pointer result;
+  pointer result;
   result_t load_result
-      = scheme_load_file (g_world_scheme_state, filepath, &result);
+      = hite_scheme_load_file (g_world_scheme_state, filepath, &result);
   if (load_result.code != RESULT_OK)
     return load_result;
 
   // Verify it's a world definition: (world ...)
-  if (!s7_is_pair_wrapper (g_world_scheme_state, result))
+  if (!scheme_is_pair_wrapper (g_world_scheme_state, result))
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                          "Expected world definition");
 
-  s7_pointer tag = s7_car_wrapper (g_world_scheme_state, result);
-  if (!s7_is_symbol_wrapper (g_world_scheme_state, tag))
+  pointer tag = scheme_car_wrapper (g_world_scheme_state, result);
+  if (!scheme_is_symbol_wrapper (g_world_scheme_state, tag))
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                          "Expected symbol 'world'");
 
-  const char *tag_name = s7_symbol_name_wrapper (g_world_scheme_state, tag);
+  const char *tag_name = scheme_symbol_name_wrapper (g_world_scheme_state, tag);
   if (!tag_name || strcmp (tag_name, "world") != 0)
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                          "Expected (world ...)");
 
   // Parse world fields
-  s7_pointer current = s7_cdr_wrapper (g_world_scheme_state, result);
+  pointer current = scheme_cdr_wrapper (g_world_scheme_state, result);
 
   // Temporary arrays for counting
   size_t prefab_count = 0;
   size_t entity_count = 0;
 
   // First pass: count items
-  s7_pointer count_current = current;
-  while (s7_is_pair_wrapper (g_world_scheme_state, count_current))
+  pointer count_current = current;
+  while (scheme_is_pair_wrapper (g_world_scheme_state, count_current))
     {
-      s7_pointer field = s7_car_wrapper (g_world_scheme_state, count_current);
-      if (s7_is_pair_wrapper (g_world_scheme_state, field))
+      pointer field = scheme_car_wrapper (g_world_scheme_state, count_current);
+      if (scheme_is_pair_wrapper (g_world_scheme_state, field))
         {
-          s7_pointer field_name_obj
-              = s7_car_wrapper (g_world_scheme_state, field);
-          if (s7_is_symbol_wrapper (g_world_scheme_state, field_name_obj))
+          pointer field_name_obj
+              = scheme_car_wrapper (g_world_scheme_state, field);
+          if (scheme_is_symbol_wrapper (g_world_scheme_state, field_name_obj))
             {
               const char *field_name
-                  = s7_symbol_name_wrapper (g_world_scheme_state,
+                  = scheme_symbol_name_wrapper (g_world_scheme_state,
                                             field_name_obj);
               if (strcmp (field_name, "prefabs") == 0)
                 {
                   // Count prefab names in list
-                  s7_pointer prefab_list
-                      = s7_cdr_wrapper (g_world_scheme_state, field);
-                  while (s7_is_pair_wrapper (g_world_scheme_state,
+                  pointer prefab_list
+                      = scheme_cdr_wrapper (g_world_scheme_state, field);
+                  while (scheme_is_pair_wrapper (g_world_scheme_state,
                                              prefab_list))
                     {
                       prefab_count++;
                       prefab_list
-                          = s7_cdr_wrapper (g_world_scheme_state, prefab_list);
+                          = scheme_cdr_wrapper (g_world_scheme_state, prefab_list);
                     }
                 }
               else if (strcmp (field_name, "entity") == 0)
@@ -276,7 +303,7 @@ world_load_from_file (const char *filepath, world_definition_t *out_definition)
                 }
             }
         }
-      count_current = s7_cdr_wrapper (g_world_scheme_state, count_current);
+      count_current = scheme_cdr_wrapper (g_world_scheme_state, count_current);
     }
 
   // Allocate arrays
@@ -295,36 +322,36 @@ world_load_from_file (const char *filepath, world_definition_t *out_definition)
     }
 
   // Second pass: parse fields
-  while (s7_is_pair_wrapper (g_world_scheme_state, current))
+  while (scheme_is_pair_wrapper (g_world_scheme_state, current))
     {
-      s7_pointer field = s7_car_wrapper (g_world_scheme_state, current);
+      pointer field = scheme_car_wrapper (g_world_scheme_state, current);
 
-      if (s7_is_pair_wrapper (g_world_scheme_state, field))
+      if (scheme_is_pair_wrapper (g_world_scheme_state, field))
         {
-          s7_pointer field_name_obj
-              = s7_car_wrapper (g_world_scheme_state, field);
-          if (!s7_is_symbol_wrapper (g_world_scheme_state, field_name_obj))
+          pointer field_name_obj
+              = scheme_car_wrapper (g_world_scheme_state, field);
+          if (!scheme_is_symbol_wrapper (g_world_scheme_state, field_name_obj))
             {
-              current = s7_cdr_wrapper (g_world_scheme_state, current);
+              current = scheme_cdr_wrapper (g_world_scheme_state, current);
               continue;
             }
 
           const char *field_name
-              = s7_symbol_name_wrapper (g_world_scheme_state, field_name_obj);
+              = scheme_symbol_name_wrapper (g_world_scheme_state, field_name_obj);
           if (!field_name)
             {
-              current = s7_cdr_wrapper (g_world_scheme_state, current);
+              current = scheme_cdr_wrapper (g_world_scheme_state, current);
               continue;
             }
 
           // Parse name
           if (strcmp (field_name, "name") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (g_world_scheme_state, field);
-              if (s7_is_string_wrapper (g_world_scheme_state, value))
+              pointer value = scheme_cadr_wrapper (g_world_scheme_state, field);
+              if (scheme_is_string_wrapper (g_world_scheme_state, value))
                 {
                   const char *name
-                      = s7_string_wrapper (g_world_scheme_state, value);
+                      = scheme_string_wrapper (g_world_scheme_state, value);
                   if (name)
                     out_definition->name = strdup (name);
                 }
@@ -332,31 +359,31 @@ world_load_from_file (const char *filepath, world_definition_t *out_definition)
           // Parse fixed-delta-time
           else if (strcmp (field_name, "fixed-delta-time") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (g_world_scheme_state, field);
-              s7_parse_float (g_world_scheme_state, value,
+              pointer value = scheme_cadr_wrapper (g_world_scheme_state, field);
+              scheme_parse_float (g_world_scheme_state, value,
                               &out_definition->fixed_delta_time);
             }
           // Parse use-fixed-timestep
           else if (strcmp (field_name, "use-fixed-timestep") == 0)
             {
-              s7_pointer value = s7_cadr_wrapper (g_world_scheme_state, field);
-              if (s7_is_boolean_wrapper (g_world_scheme_state, value))
+              pointer value = scheme_cadr_wrapper (g_world_scheme_state, field);
+              if (scheme_is_boolean_wrapper (g_world_scheme_state, value))
                 out_definition->use_fixed_timestep
-                    = s7_boolean_wrapper (g_world_scheme_state, value);
+                    = scheme_boolean_wrapper (g_world_scheme_state, value);
             }
           // Parse prefabs list
           else if (strcmp (field_name, "prefabs") == 0)
             {
-              s7_pointer prefab_list
-                  = s7_cdr_wrapper (g_world_scheme_state, field);
-              while (s7_is_pair_wrapper (g_world_scheme_state, prefab_list))
+              pointer prefab_list
+                  = scheme_cdr_wrapper (g_world_scheme_state, field);
+              while (scheme_is_pair_wrapper (g_world_scheme_state, prefab_list))
                 {
-                  s7_pointer prefab_name_obj
-                      = s7_car_wrapper (g_world_scheme_state, prefab_list);
-                  if (s7_is_string_wrapper (g_world_scheme_state,
+                  pointer prefab_name_obj
+                      = scheme_car_wrapper (g_world_scheme_state, prefab_list);
+                  if (scheme_is_string_wrapper (g_world_scheme_state,
                                             prefab_name_obj))
                     {
-                      const char *prefab_name = s7_string_wrapper (
+                      const char *prefab_name = scheme_string_wrapper (
                           g_world_scheme_state, prefab_name_obj);
                       size_t idx = out_definition->prefab_instance_count++;
                       out_definition->prefab_instances[idx].prefab_name
@@ -365,7 +392,7 @@ world_load_from_file (const char *filepath, world_definition_t *out_definition)
                               prefab_name);
                     }
                   prefab_list
-                      = s7_cdr_wrapper (g_world_scheme_state, prefab_list);
+                      = scheme_cdr_wrapper (g_world_scheme_state, prefab_list);
                 }
             }
           // Parse entity
@@ -392,7 +419,7 @@ world_load_from_file (const char *filepath, world_definition_t *out_definition)
             }
         }
 
-      current = s7_cdr_wrapper (g_world_scheme_state, current);
+      current = scheme_cdr_wrapper (g_world_scheme_state, current);
     }
 
   printf ("[World Loader] Loaded world '%s' from %s\n",
