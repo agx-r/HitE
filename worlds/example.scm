@@ -17,14 +17,5 @@
       (color 0.5 0.5 0.5 1.0)
       (visible #t)))
   
-  ;; Red sphere
-  ; (entity
-  ;   (component "shape"
-  ;     (type "sphere")
-  ;     (position 2 1 -2)
-  ;     (dimensions 0.5 0.5 0.5)
-  ;     (color 1.0 0.2 0.2 1.0)
-  ;     (visible #t)))
-  
   ;; Camera entity from prefab
   (entity (prefab "camera")))

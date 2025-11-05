@@ -4,115 +4,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Math helpers
-static inline float
-vec3_length (vec3_t v)
-{
-  return sqrtf (v.x * v.x + v.y * v.y + v.z * v.z);
-}
-
-static inline vec3_t
-vec3_sub (vec3_t a, vec3_t b)
-{
-  return (vec3_t){ a.x - b.x, a.y - b.y, a.z - b.z, 0 };
-}
-
-static inline vec3_t
-vec3_abs (vec3_t v)
-{
-  return (vec3_t){ fabsf (v.x), fabsf (v.y), fabsf (v.z), 0 };
-}
-
-static inline vec3_t
-vec3_max_scalar (vec3_t v, float s)
-{
-  return (vec3_t){ fmaxf (v.x, s), fmaxf (v.y, s), fmaxf (v.z, s), 0 };
-}
-
-static inline float
-vec3_max_component (vec3_t v)
-{
-  return fmaxf (v.x, fmaxf (v.y, v.z));
-}
-
-static inline float
-vec3_dot (vec3_t a, vec3_t b)
-{
-  return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-static inline float
-clampf (float x, float min, float max)
-{
-  return fmaxf (min, fminf (max, x));
-}
-
-// SDF primitives implementation
-float
-sdf_sphere (vec3_t p, float radius)
-{
-  return vec3_length (p) - radius;
-}
-
-float
-sdf_box (vec3_t p, vec3_t half_extents)
-{
-  vec3_t q = vec3_sub (vec3_abs (p), half_extents);
-  return vec3_length (vec3_max_scalar (q, 0.0f))
-         + fminf (vec3_max_component (q), 0.0f);
-}
-
-float
-sdf_torus (vec3_t p, float major_radius, float minor_radius)
-{
-  float xz_length = sqrtf (p.x * p.x + p.z * p.z);
-  vec2_t q = { xz_length - major_radius, p.y, 0, 0 };
-  return sqrtf (q.x * q.x + q.y * q.y) - minor_radius;
-}
-
-float
-sdf_plane (vec3_t p, vec3_t normal, float distance)
-{
-  return vec3_dot (p, normal) + distance;
-}
-
-float
-sdf_cylinder (vec3_t p, float radius, float height)
-{
-  float xz_length = sqrtf (p.x * p.x + p.z * p.z);
-  vec2_t d = { xz_length - radius, fabsf (p.y) - height * 0.5f, 0, 0 };
-  return fminf (fmaxf (d.x, d.y), 0.0f)
-         + vec3_length (
-             (vec3_t){ fmaxf (d.x, 0.0f), fmaxf (d.y, 0.0f), 0, 0 });
-}
-
-float
-sdf_capsule (vec3_t p, float radius, float height)
-{
-  p.y -= clampf (p.y, -height * 0.5f, height * 0.5f);
-  return vec3_length (p) - radius;
-}
-
-float
-sdf_cone (vec3_t p, float radius, float height)
-{
-  vec2_t q = { sqrtf (p.x * p.x + p.z * p.z), p.y, 0, 0 };
-  vec2_t k = { radius / height, -1.0f, 0, 0 };
-
-  float d = q.x * k.x + q.y * k.y;
-  if (d < 0.0f)
-    {
-      return sqrtf (q.x * q.x + q.y * q.y);
-    }
-
-  vec2_t c = { q.x - radius, q.y - height, 0, 0 };
-  if (c.y > 0.0f)
-    {
-      return sqrtf (c.x * c.x + c.y * c.y);
-    }
-
-  return d / sqrtf (k.x * k.x + k.y * k.y);
-}
+// Include all shape implementations from shapes directory
+// They bring their own math helpers from shape_interface.h
+#include "../../shapes/sphere.c"
+#include "../../shapes/box.c"
+#include "../../shapes/torus.c"
+#include "../../shapes/plane.c"
+#include "../../shapes/cylinder.c"
+#include "../../shapes/capsule.c"
+#include "../../shapes/cone.c"
 
 // Shape operations
 float
@@ -146,9 +46,10 @@ transform_point (vec3_t point, const transform_t *transform)
 {
   // Simple translation for now
   // Full implementation would apply rotation (quaternion) and scale
-  return (vec3_t){ point.x + transform->position.x,
-                   point.y + transform->position.y,
-                   point.z + transform->position.z, 0 };
+  return (vec3_t){ .x = point.x + transform->position.x,
+                   .y = point.y + transform->position.y,
+                   .z = point.z + transform->position.z,
+                   ._padding = 0 };
 }
 
 vec3_t
@@ -156,9 +57,10 @@ transform_point_inverse (vec3_t point, const transform_t *transform)
 {
   // Inverse transformation: subtract position
   // Full implementation would apply inverse rotation and scale
-  return (vec3_t){ point.x - transform->position.x,
-                   point.y - transform->position.y,
-                   point.z - transform->position.z, 0 };
+  return (vec3_t){ .x = point.x - transform->position.x,
+                   .y = point.y - transform->position.y,
+                   .z = point.z - transform->position.z,
+                   ._padding = 0 };
 }
 
 // Evaluate shape's SDF
@@ -188,7 +90,7 @@ shape_evaluate_sdf (const shape_component_t *shape, vec3_t world_point)
       break;
 
     case SHAPE_PLANE:
-      distance = sdf_plane (local_point, (vec3_t){ 0, 1, 0, 0 },
+      distance = sdf_plane (local_point, (vec3_t){ .x = 0, .y = 1, .z = 0, ._padding = 0 },
                             shape->dimensions.x);
       break;
 
@@ -238,7 +140,7 @@ shape_component_start (ecs_world_t *world, entity_id_t entity,
   // Initialize defaults if needed
   if (shape->color.w == 0.0f)
     {
-      shape->color = (vec4_t){ 0.8f, 0.8f, 0.8f, 1.0f };
+      shape->color = (vec4_t){ .x = 0.8f, .y = 0.8f, .z = 0.8f, .w = 1.0f };
     }
 
   shape->dirty = true;
@@ -328,8 +230,8 @@ shape_sphere_create (vec3_t position, float radius, vec4_t color)
 {
   shape_component_t shape = { 0 };
   shape.transform.position = position;
-  shape.transform.scale = (vec3_t){ 1, 1, 1, 0 };
-  shape.transform.rotation = (vec4_t){ 0, 0, 0, 1 }; // Identity quaternion
+  shape.transform.scale = (vec3_t){ .x = 1, .y = 1, .z = 1, ._padding = 0 };
+  shape.transform.rotation = (vec4_t){ .x = 0, .y = 0, .z = 0, .w = 1 }; // Identity quaternion
   shape.type = SHAPE_SPHERE;
   shape.operation = SHAPE_OP_UNION;
   shape.dimensions.x = radius;
@@ -347,8 +249,8 @@ shape_box_create (vec3_t position, vec3_t half_extents, vec4_t color)
 {
   shape_component_t shape = { 0 };
   shape.transform.position = position;
-  shape.transform.scale = (vec3_t){ 1, 1, 1, 0 };
-  shape.transform.rotation = (vec4_t){ 0, 0, 0, 1 };
+  shape.transform.scale = (vec3_t){ .x = 1, .y = 1, .z = 1, ._padding = 0 };
+  shape.transform.rotation = (vec4_t){ .x = 0, .y = 0, .z = 0, .w = 1 };
   shape.type = SHAPE_BOX;
   shape.operation = SHAPE_OP_UNION;
   shape.dimensions = half_extents;
@@ -367,8 +269,8 @@ shape_torus_create (vec3_t position, float major_radius, float minor_radius,
 {
   shape_component_t shape = { 0 };
   shape.transform.position = position;
-  shape.transform.scale = (vec3_t){ 1, 1, 1, 0 };
-  shape.transform.rotation = (vec4_t){ 0, 0, 0, 1 };
+  shape.transform.scale = (vec3_t){ .x = 1, .y = 1, .z = 1, ._padding = 0 };
+  shape.transform.rotation = (vec4_t){ .x = 0, .y = 0, .z = 0, .w = 1 };
   shape.type = SHAPE_TORUS;
   shape.operation = SHAPE_OP_UNION;
   shape.dimensions.x = major_radius;
