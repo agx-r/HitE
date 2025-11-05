@@ -1,6 +1,8 @@
 #include "global.h"
 #include "prefab.h"
 #include "world_loader.h"
+#include "component_parsers.h"
+#include "scheme_parser.h"
 #include "../components/camera_component.h"
 #include "../components/camera_movement_component.h"
 #include "../components/camera_rotation_component.h"
@@ -393,13 +395,34 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
               void *existing = ecs_get_component (state->world_manager->active_world, entity, comp_id);
               if (existing)
                 {
-                  // Override existing component data
-                  memcpy (existing, comp_data, tmpl->components[j].data_size);
+                  // Component exists from prefab - apply partial override
+                  if (tmpl->components[j].sexp)
+                    {
+                      // Partial override: apply only specified fields from S-expression
+                      scheme_state_t *scheme_state = hite_scheme_init ();
+                      if (scheme_state)
+                        {
+                          apply_component_override (scheme_state, comp_name, tmpl->components[j].sexp, existing);
+                          hite_scheme_shutdown (scheme_state);
+                        }
+                    }
+                  else
+                    {
+                      // Full override with parsed data
+                      memcpy (existing, comp_data, tmpl->components[j].data_size);
+                    }
                 }
               else
                 {
-                  // Add new component
-                  ecs_add_component (state->world_manager->active_world, entity, comp_id, comp_data);
+                  // Component doesn't exist - add new component
+                  if (comp_data)
+                    {
+                      ecs_add_component (state->world_manager->active_world, entity, comp_id, comp_data);
+                    }
+                  else
+                    {
+                      printf ("[Warning] No component data for '%s'\n", comp_name);
+                    }
                 }
             }
         }

@@ -2,6 +2,79 @@
 #include <stdio.h>
 #include <string.h>
 
+// Helper: Apply partial component override (only update specified fields)
+static void
+apply_shape_component_override (scheme_state_t *state, pointer sexp,
+                                 shape_component_t *target)
+{
+  if (!state || !sexp || !target)
+    return;
+
+  if (!scheme_is_pair_wrapper (state, sexp))
+    return;
+
+  // Iterate through fields (skip first two: 'component' and "shape")
+  pointer current = scheme_cdr_wrapper (state, sexp);
+  if (scheme_is_pair_wrapper (state, current))
+    current = scheme_cdr_wrapper (state, current); // Skip component name
+
+  while (scheme_is_pair_wrapper (state, current))
+    {
+      pointer field = scheme_car_wrapper (state, current);
+
+      if (scheme_is_pair_wrapper (state, field))
+        {
+          pointer field_name_obj = scheme_car_wrapper (state, field);
+          if (!scheme_is_symbol_wrapper (state, field_name_obj))
+            {
+              current = scheme_cdr_wrapper (state, current);
+              continue;
+            }
+
+          const char *field_name
+              = scheme_symbol_name_wrapper (state, field_name_obj);
+          if (!field_name)
+            {
+              current = scheme_cdr_wrapper (state, current);
+              continue;
+            }
+
+          // Override specific fields only
+          if (strcmp (field_name, "type") == 0)
+            {
+              pointer type_value = scheme_car_wrapper (state, scheme_cdr_wrapper (state, field));
+              parse_shape_type (state, type_value, &target->type);
+            }
+          else if (strcmp (field_name, "position") == 0)
+            {
+              pointer pos_list = scheme_cdr_wrapper (state, field);
+              scheme_parse_vec3 (state, pos_list, &target->transform.position);
+            }
+          else if (strcmp (field_name, "dimensions") == 0)
+            {
+              pointer dim_list = scheme_cdr_wrapper (state, field);
+              scheme_parse_vec3 (state, dim_list, &target->dimensions);
+            }
+          else if (strcmp (field_name, "color") == 0)
+            {
+              pointer color_list = scheme_cdr_wrapper (state, field);
+              scheme_parse_vec4 (state, color_list, &target->color);
+            }
+          else if (strcmp (field_name, "visible") == 0)
+            {
+              pointer visible_value = scheme_cadr_wrapper (state, field);
+              if (scheme_is_boolean_wrapper (state, visible_value))
+                target->visible = scheme_boolean_wrapper (state, visible_value);
+            }
+        }
+
+      current = scheme_cdr_wrapper (state, current);
+    }
+  
+  // Mark as dirty after override
+  target->dirty = true;
+}
+
 // Helper: Parse shape type from symbol (e.g., 'box, 'sphere, 'torus)
 result_t
 parse_shape_type (scheme_state_t *state, pointer sexp,
@@ -416,4 +489,21 @@ parse_camera_rotation_component (scheme_state_t *state, pointer sexp,
     }
 
   return RESULT_SUCCESS;
+}
+
+
+// Public function to apply component override based on type
+void
+apply_component_override (scheme_state_t *state, const char *component_name,
+                          pointer sexp, void *target_component)
+{
+  if (!state || !component_name || !sexp || !target_component)
+    return;
+
+  if (strcmp (component_name, "shape") == 0)
+    {
+      apply_shape_component_override (state, sexp, (shape_component_t *)target_component);
+    }
+  // Add other component types as needed
+  // else if (strcmp (component_name, "camera") == 0) { ... }
 }

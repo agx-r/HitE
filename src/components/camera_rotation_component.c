@@ -50,7 +50,7 @@ camera_rotation_process_mouse (camera_rotation_component_t *rotation,
   xoffset *= rotation->look_sensitivity;
   yoffset *= rotation->look_sensitivity;
 
-  rotation->yaw -= xoffset;
+  rotation->yaw += xoffset;  // Inverted X rotation
   rotation->pitch -= yoffset;
 
   // Constrain pitch

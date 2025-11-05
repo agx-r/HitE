@@ -32,4 +32,8 @@ result_t parse_camera_rotation_component (
 result_t parse_shape_type (scheme_state_t *state, pointer sexp,
                            shape_type_t *out_type);
 
+// Apply partial component override from Scheme data
+void apply_component_override (scheme_state_t *state, const char *component_name,
+                               pointer sexp, void *target_component);
+
 #endif // HITE_COMPONENT_PARSERS_H

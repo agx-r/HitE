@@ -268,7 +268,7 @@ prefab_load (prefab_system_t *system, const char *filepath,
                     {
                       prefab_add_component (prefab, "shape", &shape_data,
                                             sizeof (shape_component_t));
-                      printf ("[Prefab]   ? Shape component parsed\n");
+                      printf ("[Prefab]   Shape component parsed\n");
                     }
                   else
                     {
@@ -285,11 +285,11 @@ prefab_load (prefab_system_t *system, const char *filepath,
                     {
                       prefab_add_component (prefab, "camera", &camera_data,
                                             sizeof (camera_component_t));
-                      printf ("[Prefab]   ? Camera component parsed\n");
+                      printf ("[Prefab]   Camera component parsed\n");
                     }
                   else
                     {
-                      printf ("[Prefab]   ? Failed to parse camera: %s\n",
+                      printf ("[Prefab]   Failed to parse camera: %s\n",
                               res.message);
                     }
                 }
@@ -304,13 +304,13 @@ prefab_load (prefab_system_t *system, const char *filepath,
                       prefab_add_component (
                           prefab, "camera_movement", &movement_data,
                           sizeof (camera_movement_component_t));
-                      printf ("[Prefab]   ? Camera movement component "
+                      printf ("[Prefab]   Camera movement component "
                               "parsed\n");
                     }
                   else
                     {
                       printf (
-                          "[Prefab]   ? Failed to parse camera_movement: %s\n",
+                          "[Prefab]   Failed to parse camera_movement: %s\n",
                           res.message);
                     }
                 }
@@ -325,13 +325,13 @@ prefab_load (prefab_system_t *system, const char *filepath,
                       prefab_add_component (
                           prefab, "camera_rotation", &rotation_data,
                           sizeof (camera_rotation_component_t));
-                      printf ("[Prefab]   ? Camera rotation component "
+                      printf ("[Prefab]   Camera rotation component "
                               "parsed\n");
                     }
                   else
                     {
                       printf (
-                          "[Prefab]   ? Failed to parse camera_rotation: %s\n",
+                          "[Prefab]   Failed to parse camera_rotation: %s\n",
                           res.message);
                     }
                 }
@@ -473,7 +473,7 @@ prefab_instantiate (const prefab_t *prefab, ecs_world_t *world,
         }
       else
         {
-          printf ("[Prefab]   ? Added component '%s' to entity %u\n",
+          printf ("[Prefab]   Added component '%s' to entity %u\n",
                   comp->component_name, entity);
         }
     }

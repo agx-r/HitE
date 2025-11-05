@@ -4,9 +4,9 @@
   (fixed-delta-time 0.016666)
   (use-fixed-timestep #f)
   
-  (entity (prefab "torus"))
-    ; (component "shape"
-    ;   (position 0 1.5 -3)))
+  (entity (prefab "torus")
+    (component "shape"
+      (position 0 1.5 -3)))
   
   ;; Ground plane
   (entity

@@ -198,24 +198,48 @@ parse_entity_template (scheme_state_t *state, pointer entity_sexp,
                   = scheme_symbol_name_wrapper (state, field_name_obj);
               if (strcmp (field_name, "component") == 0)
                 {
-                  const char *comp_name;
-                  void *comp_data;
-                  size_t comp_size;
-
-                  result_t res = parse_component_definition (
-                      state, field, &comp_name, &comp_data, &comp_size);
-                  if (res.code == RESULT_OK)
+                  // Get component name first
+                  pointer comp_name_obj = scheme_cadr_wrapper (state, field);
+                  if (!scheme_is_string_wrapper (state, comp_name_obj))
                     {
-                      size_t idx = out_template->component_count++;
-                      out_template->components[idx].component_name = comp_name;
-                      out_template->components[idx].data = comp_data;
-                      out_template->components[idx].data_size = comp_size;
+                      current = scheme_cdr_wrapper (state, current);
+                      continue;
+                    }
+                  
+                  const char *comp_name = strdup (scheme_string_wrapper (state, comp_name_obj));
+                  
+                  size_t idx = out_template->component_count++;
+                  out_template->components[idx].component_name = comp_name;
+                  out_template->components[idx].sexp = field; // Save S-expression for partial overrides
+                  
+                  // If this entity has a prefab, don't parse component data
+                  // It will be a partial override applied later
+                  if (out_template->prefab_name)
+                    {
+                      out_template->components[idx].data = NULL;
+                      out_template->components[idx].data_size = 0;
                     }
                   else
                     {
-                      printf ("[World Loader] Warning: Failed to parse "
-                              "component: %s\n",
-                              res.message);
+                      // No prefab - parse full component data
+                      void *comp_data;
+                      size_t comp_size;
+                      
+                      result_t res = parse_component_definition (
+                          state, field, &comp_name, &comp_data, &comp_size);
+                      if (res.code == RESULT_OK)
+                        {
+                          out_template->components[idx].data = comp_data;
+                          out_template->components[idx].data_size = comp_size;
+                        }
+                      else
+                        {
+                          printf ("[World Loader] Warning: Failed to parse "
+                                  "component: %s\n",
+                                  res.message);
+                          out_template->components[idx].data = NULL;
+                          out_template->components[idx].data_size = 0;
+                        }
                     }
                 }
             }

@@ -27,6 +27,9 @@ typedef struct
   size_t additional_component_count;
 } prefab_instance_t;
 
+// Forward declare pointer from TinyScheme
+typedef struct cell *pointer;
+
 // Entity template (can be from prefab or inline)
 typedef struct
 {
@@ -37,8 +40,9 @@ typedef struct
   struct
   {
     const char *component_name;
-    void *data;
+    void *data;        // Parsed component data (for new components)
     size_t data_size;
+    pointer sexp;      // Original S-expression (for partial overrides)
   } *components;
   size_t component_count;
 } entity_template_t;
