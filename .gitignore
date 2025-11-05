@@ -6,5 +6,6 @@ result-*
 compile_commands.json
 *.swp
 *.swo
+*.out
 *~
 .DS_Store
