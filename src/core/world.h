@@ -2,7 +2,9 @@
 #define HITE_WORLD_H
 
 #include "ecs.h"
+#include "prefab.h"
 #include "types.h"
+#include "component_parsers.h"
 
 // Component override for prefab instances
 typedef struct
@@ -81,17 +83,22 @@ world_manager_t *world_manager_create (void);
 void world_manager_destroy (world_manager_t *manager);
 
 // Load world from definition
+// prefab_system can be NULL if no prefabs are referenced
 result_t world_load (world_manager_t *manager,
-                     const world_definition_t *definition);
+                     const world_definition_t *definition,
+                     prefab_system_t *prefab_system);
 
 // Instantiate entities from templates
+// prefab_system can be NULL if no prefabs are referenced
 result_t world_instantiate_templates (ecs_world_t *world,
                                       const entity_template_t *templates,
-                                      size_t count);
+                                      size_t count,
+                                      prefab_system_t *prefab_system);
 
 // Switch active world at runtime
 result_t world_switch (world_manager_t *manager,
-                       const world_definition_t *definition);
+                       const world_definition_t *definition,
+                       prefab_system_t *prefab_system);
 
 // Update active world
 result_t world_update (world_manager_t *manager, float delta_time);

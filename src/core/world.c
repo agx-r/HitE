@@ -1,4 +1,6 @@
 #include "world.h"
+#include "prefab.h"
+#include "component_parsers.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,7 +38,8 @@ world_manager_destroy (world_manager_t *manager)
 }
 
 result_t
-world_load (world_manager_t *manager, const world_definition_t *definition)
+world_load (world_manager_t *manager, const world_definition_t *definition,
+            prefab_system_t *prefab_system)
 {
   if (!manager || !definition)
     {
@@ -62,12 +65,12 @@ world_load (world_manager_t *manager, const world_definition_t *definition)
   // All entities are now defined in the world file or loaded from prefabs
   // No separate C generators needed
 
-  // Instantiate entity templates
+  // Instantiate entity templates (only entities declared in world file)
   if (definition->entity_templates && definition->entity_template_count > 0)
     {
-      result_t result
-          = world_instantiate_templates (world, definition->entity_templates,
-                                         definition->entity_template_count);
+      result_t result = world_instantiate_templates (
+          world, definition->entity_templates, definition->entity_template_count,
+          prefab_system);
       if (result.code != RESULT_OK)
         {
           ecs_world_destroy (world);
@@ -96,7 +99,8 @@ world_load (world_manager_t *manager, const world_definition_t *definition)
 
 result_t
 world_instantiate_templates (ecs_world_t *world,
-                             const entity_template_t *templates, size_t count)
+                             const entity_template_t *templates, size_t count,
+                             prefab_system_t *prefab_system)
 {
   if (!world || !templates)
     {
@@ -107,36 +111,108 @@ world_instantiate_templates (ecs_world_t *world,
   for (size_t i = 0; i < count; i++)
     {
       const entity_template_t *tmpl = &templates[i];
+      entity_id_t entity = INVALID_ENTITY;
 
-      // Create entity
-      entity_id_t entity = ecs_entity_create (world);
-      if (entity == INVALID_ENTITY)
+      // If template references a prefab, instantiate it first
+      if (tmpl->prefab_name)
         {
-          return RESULT_ERROR (RESULT_ERROR_ALLOCATION,
-                               "Failed to create entity");
-        }
-
-      // Add components
-      for (size_t j = 0; j < tmpl->component_count; j++)
-        {
-          const char *component_name = tmpl->components[j].component_name;
-          const void *initial_data = tmpl->components[j].data;
-
-          component_id_t component_id
-              = ecs_get_component_id (world, component_name);
-          if (component_id == INVALID_ENTITY)
+          if (!prefab_system)
             {
-              char msg[256];
-              snprintf (msg, sizeof (msg), "Component not found: %s",
-                        component_name);
-              return RESULT_ERROR (RESULT_ERROR_NOT_FOUND, msg);
+              printf ("[World] Warning: Prefab '%s' referenced but no prefab "
+                      "system provided\n",
+                      tmpl->prefab_name);
+              continue;
             }
 
-          result_t result
-              = ecs_add_component (world, entity, component_id, initial_data);
-          if (result.code != RESULT_OK)
+          prefab_t *prefab = prefab_find (prefab_system, tmpl->prefab_name);
+          if (prefab)
             {
-              return result;
+              result_t res = prefab_instantiate (prefab, world, &entity);
+              if (res.code != RESULT_OK)
+                {
+                  printf ("[World] Warning: Failed to instantiate prefab '%s': "
+                          "%s\n",
+                          tmpl->prefab_name, res.message);
+                  continue;
+                }
+            }
+          else
+            {
+              printf ("[World] Warning: Prefab '%s' not found for entity "
+                      "template\n",
+                      tmpl->prefab_name);
+              continue;
+            }
+        }
+      else
+        {
+          // Create empty entity for inline components
+          entity = ecs_entity_create (world);
+          if (entity == INVALID_ENTITY)
+            {
+              return RESULT_ERROR (RESULT_ERROR_ALLOCATION,
+                                   "Failed to create entity");
+            }
+        }
+
+      // Add/override components from template
+      for (size_t j = 0; j < tmpl->component_count; j++)
+        {
+          const char *comp_name = tmpl->components[j].component_name;
+          const void *comp_data = tmpl->components[j].data;
+
+          component_id_t comp_id
+              = ecs_get_component_id (world, comp_name);
+          if (comp_id == INVALID_ENTITY)
+            {
+              printf ("[World] Warning: Component '%s' not registered\n",
+                      comp_name);
+              continue;
+            }
+
+          // Check if component already exists (from prefab)
+          void *existing = ecs_get_component (world, entity, comp_id);
+          if (existing)
+            {
+              // Component exists from prefab - apply partial override
+              if (tmpl->components[j].sexp)
+                {
+                  // Partial override: apply only specified fields from
+                  // S-expression
+                  scheme_state_t *scheme_state = hite_scheme_init ();
+                  if (scheme_state)
+                    {
+                      apply_component_override (scheme_state, comp_name,
+                                                tmpl->components[j].sexp,
+                                                existing);
+                      hite_scheme_shutdown (scheme_state);
+                    }
+                }
+              else if (comp_data)
+                {
+                  // Full override with parsed data
+                  memcpy (existing, comp_data, tmpl->components[j].data_size);
+                }
+            }
+          else
+            {
+              // Component doesn't exist - add new component
+              if (comp_data)
+                {
+                  result_t result = ecs_add_component (world, entity, comp_id,
+                                                      comp_data);
+                  if (result.code != RESULT_OK)
+                    {
+                      printf ("[World] Warning: Failed to add component '%s': "
+                              "%s\n",
+                              comp_name, result.message);
+                    }
+                }
+              else
+                {
+                  printf ("[World] Warning: No component data for '%s'\n",
+                          comp_name);
+                }
             }
         }
     }
@@ -145,10 +221,11 @@ world_instantiate_templates (ecs_world_t *world,
 }
 
 result_t
-world_switch (world_manager_t *manager, const world_definition_t *definition)
+world_switch (world_manager_t *manager, const world_definition_t *definition,
+              prefab_system_t *prefab_system)
 {
   // Same as load for now, but could add transition logic
-  return world_load (manager, definition);
+  return world_load (manager, definition, prefab_system);
 }
 
 result_t
