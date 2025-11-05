@@ -38,11 +38,16 @@ typedef struct
   prefab_t *prefabs;
   size_t prefab_count;
   size_t prefab_capacity;
+  const char *prefabs_directory; // Directory path for lazy loading
 } prefab_system_t;
 
 // Prefab system lifecycle
 prefab_system_t *prefab_system_create (void);
 void prefab_system_destroy (prefab_system_t *system);
+
+// Set prefabs directory for lazy loading
+void prefab_system_set_directory (prefab_system_t *system,
+                                   const char *directory_path);
 
 // Load prefab from file (Scheme format)
 result_t prefab_load (prefab_system_t *system, const char *filepath,

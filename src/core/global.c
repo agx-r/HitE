@@ -275,13 +275,8 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
                            "Failed to create prefab system");
     }
 
-  // Load prefabs from directory
-  result_t result
-      = prefab_load_directory (prefab_system, config->prefabs_directory);
-  if (result.code != RESULT_OK)
-    {
-      printf ("[Warning] Failed to load prefabs: %s\n", result.message);
-    }
+  // Set prefabs directory for lazy loading (only load prefabs when referenced)
+  prefab_system_set_directory (prefab_system, config->prefabs_directory);
 
   // Create world
   state->world_manager->active_world = ecs_world_create ();
@@ -305,7 +300,7 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
 
   // Load world definition from file
   world_definition_t world_def = { 0 };
-  result = world_load_from_file (config->initial_world_path, &world_def);
+  result_t result = world_load_from_file (config->initial_world_path, &world_def);
   if (result.code != RESULT_OK)
     {
       printf ("[Warning] Failed to load world file: %s\n", result.message);

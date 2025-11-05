@@ -51,6 +51,8 @@ prefab_system_destroy (prefab_system_t *system)
     }
 
   free (system->prefabs);
+  if (system->prefabs_directory)
+    free ((void *)system->prefabs_directory);
   free (system);
 
   // Shutdown TinyScheme
@@ -461,18 +463,58 @@ prefab_load_directory (prefab_system_t *system, const char *directory_path)
   return RESULT_SUCCESS;
 }
 
-// Find prefab by name
+// Set prefabs directory for lazy loading
+void
+prefab_system_set_directory (prefab_system_t *system, const char *directory_path)
+{
+  if (!system)
+    return;
+
+  if (system->prefabs_directory)
+    free ((void *)system->prefabs_directory);
+
+  if (directory_path)
+    system->prefabs_directory = strdup (directory_path);
+  else
+    system->prefabs_directory = NULL;
+}
+
+// Find prefab by name (lazy loads if not found and directory is set)
 prefab_t *
 prefab_find (prefab_system_t *system, const char *name)
 {
   if (!system || !name)
     return NULL;
 
+  // First, try to find already loaded prefab
   for (size_t i = 0; i < system->prefab_count; i++)
     {
-      if (strcmp (system->prefabs[i].name, name) == 0)
+      if (system->prefabs[i].name && strcmp (system->prefabs[i].name, name) == 0)
         {
           return &system->prefabs[i];
+        }
+    }
+
+  // If not found and directory is set, try lazy loading
+  if (system->prefabs_directory)
+    {
+      char filepath[512];
+      snprintf (filepath, sizeof (filepath), "%s/%s.scm",
+                system->prefabs_directory, name);
+
+      // Try to load the prefab file
+      result_t result = prefab_load (system, filepath, NULL);
+      if (result.code == RESULT_OK)
+        {
+          // Prefab was loaded, now find it
+          for (size_t i = 0; i < system->prefab_count; i++)
+            {
+              if (system->prefabs[i].name
+                  && strcmp (system->prefabs[i].name, name) == 0)
+                {
+                  return &system->prefabs[i];
+                }
+            }
         }
     }
 
