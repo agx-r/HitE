@@ -34,14 +34,11 @@ float create_mansion_cell(vec3 p, vec3 cell_id, float seed) {
     float door_d = 1.0;
     float door_y = -room_size + door_h * 0.5;
     
-    // Начинаем со сплошного материала
     float solid = -1e10;
     
-    // Вырезаем комнату
     float room = sdf_box_local(p, vec3(room_size));
     solid = max(solid, -room);
     
-    // Вырезаем дверные проходы
     if(h1 > 0.5) {
         float door = sdf_box_local(p - vec3(room_size, door_y, 0), vec3(door_d, door_h * 0.5, door_w * 0.5));
         solid = max(solid, -door);
@@ -59,7 +56,6 @@ float create_mansion_cell(vec3 p, vec3 cell_id, float seed) {
         solid = max(solid, -door);
     }
     
-    // Вырезаем отверстия вверх/вниз
     if(h6 > 0.65) {
         float hole_up = sdf_box_local(p - vec3(0, room_size, 0), vec3(1.5, 1.0, 1.5));
         solid = max(solid, -hole_up);
@@ -70,7 +66,6 @@ float create_mansion_cell(vec3 p, vec3 cell_id, float seed) {
         solid = max(solid, -hole_down);
     }
     
-    // Декоративные элементы - столбы в углах (оставляем сплошными, не вырезаем)
     for(float i = -1.0; i <= 1.0; i += 2.0) {
         for(float j = -1.0; j <= 1.0; j += 2.0) {
             float voxel_hash = hash3(vec3(i, j, 0) + cell_id * 11.37);
