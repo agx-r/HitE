@@ -57,6 +57,34 @@ event_emit (event_system_t *system, const event_t *event)
   return RESULT_SUCCESS;
 }
 
+result_t
+event_broadcast (event_system_t *system, const event_t *event)
+{
+  if (!system || !event)
+    {
+      return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
+                           "Invalid parameters");
+    }
+
+  event_t broadcast_event = *event;
+  broadcast_event.entity = INVALID_ENTITY;
+  broadcast_event.timestamp = (double)clock () / CLOCKS_PER_SEC;
+
+  for (size_t i = 0; i < system->listener_count; i++)
+    {
+      event_listener_t *listener = &system->listeners[i];
+
+      if (!listener->active)
+        continue;
+      if (listener->type != broadcast_event.type)
+        continue;
+
+      listener->callback (&broadcast_event, listener->user_data);
+    }
+
+  return RESULT_SUCCESS;
+}
+
 void
 event_process (event_system_t *system)
 {

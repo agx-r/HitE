@@ -1,4 +1,5 @@
 #include "ecs.h"
+#include "events.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -459,4 +460,21 @@ ecs_iterate_components (ecs_world_t *world, component_id_t component_id,
       void *data = (char *)array->data + i * array->descriptor.data_size;
       callback (world, array->entities[i], data, user_data);
     }
+}
+
+void
+ecs_world_set_event_system (ecs_world_t *world,
+                            struct event_system_t *event_system)
+{
+  if (!world)
+    return;
+  world->event_system = event_system;
+}
+
+struct event_system_t *
+ecs_world_get_event_system (const ecs_world_t *world)
+{
+  if (!world)
+    return NULL;
+  return world->event_system;
 }

@@ -120,7 +120,7 @@ shadow_raymarch (vec3 p, vec3 light_dir)
 vec3
 linear_to_srgb (vec3 linear)
 {
-  return pow (linear, vec3 (1.0 / 2.2));
+  return pow (linear, vec3 (1.0 / 3.2));
 }
 
 float

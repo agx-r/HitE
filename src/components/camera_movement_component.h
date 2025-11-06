@@ -2,6 +2,7 @@
 #define HITE_CAMERA_MOVEMENT_COMPONENT_H
 
 #include "../core/ecs.h"
+#include "../core/events.h"
 #include "../core/types.h"
 
 typedef struct
@@ -12,6 +13,9 @@ typedef struct
   bool keys[1024];
 
   bool enabled;
+
+  listener_id_t key_press_listener;
+  listener_id_t key_release_listener;
 } ALIGN_64 camera_movement_component_t;
 
 result_t camera_movement_component_start (ecs_world_t *world,
@@ -25,8 +29,6 @@ void camera_movement_component_destroy (void *component_data);
 
 void camera_movement_component_register (ecs_world_t *world);
 
-void camera_movement_process_key (camera_movement_component_t *movement,
-                                  int key, int action);
 camera_movement_component_t camera_movement_create_default (void);
 
 #endif

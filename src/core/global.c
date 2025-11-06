@@ -7,6 +7,7 @@
 #include "../components/lighting_component.h"
 #include "../components/shape_component.h"
 #include "component_parsers.h"
+#include "input_handler.h"
 #include "logger.h"
 #include "prefab.h"
 #include "scheme_parser.h"
@@ -40,32 +41,13 @@ glfw_key_callback (GLFWwindow *window, int key, int scancode, int action,
                    int mods)
 {
   (void)scancode;
+  (void)mods;
 
   engine_state_t *state = (engine_state_t *)glfwGetWindowUserPointer (window);
 
   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     {
       state->running = false;
-    }
-
-  if (key >= 0 && key < 1024)
-    {
-      if (action == GLFW_PRESS)
-        {
-          state->keys[key] = true;
-        }
-      else if (action == GLFW_RELEASE)
-        {
-          state->keys[key] = false;
-        }
-    }
-
-  if (state->event_system)
-    {
-      event_type_t type
-          = (action == GLFW_PRESS) ? EVENT_KEY_PRESS : EVENT_KEY_RELEASE;
-      event_t event = event_key_create (type, key, mods);
-      event_emit (state->event_system, &event);
     }
 }
 
@@ -186,9 +168,6 @@ engine_init (engine_state_t *state, const engine_config_t *config)
     }
 
   glfwSetWindowUserPointer (state->window, state);
-  glfwSetKeyCallback (state->window, glfw_key_callback);
-  glfwSetCursorPosCallback (state->window, glfw_mouse_callback);
-
   glfwSetInputMode (state->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
   state->first_mouse = true;
@@ -214,6 +193,11 @@ engine_init (engine_state_t *state, const engine_config_t *config)
   result = render_system_init (&state->render_system, &state->vk_context,
                                state->window, state->window_width,
                                state->window_height);
+  if (result.code != RESULT_OK)
+    return result;
+
+  result = input_handler_init (&state->input_handler, state->event_system,
+                               state->window);
   if (result.code != RESULT_OK)
     return result;
 
@@ -269,6 +253,9 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
       return RESULT_ERROR (RESULT_ERROR_ALLOCATION,
                            "Failed to create ECS world");
     }
+
+  ecs_world_set_event_system (state->world_manager->active_world,
+                              (struct event_system_t *)state->event_system);
 
   LOG_INFO ("Engine", "Registering components...");
   camera_component_register (state->world_manager->active_world);

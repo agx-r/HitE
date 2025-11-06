@@ -3,6 +3,8 @@
 
 #include "types.h"
 
+struct event_system_t;
+
 typedef struct ecs_world_t ecs_world_t;
 
 typedef result_t (*component_start_fn) (ecs_world_t *world, entity_id_t entity,
@@ -64,6 +66,8 @@ struct ecs_world_t
 
   time_info_t time;
 
+  struct event_system_t *event_system;
+
   struct
   {
     const char **names;
@@ -103,5 +107,9 @@ typedef void (*ecs_iterate_fn) (ecs_world_t *world, entity_id_t entity,
                                 void *component_data, void *user_data);
 void ecs_iterate_components (ecs_world_t *world, component_id_t component_id,
                              ecs_iterate_fn callback, void *user_data);
+
+void ecs_world_set_event_system (ecs_world_t *world,
+                                 struct event_system_t *event_system);
+struct event_system_t *ecs_world_get_event_system (const ecs_world_t *world);
 
 #endif

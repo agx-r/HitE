@@ -1,4 +1,5 @@
 #include "camera_rotation_component.h"
+#include "../core/events.h"
 #include "../core/logger.h"
 #include "camera_component.h"
 #include "component_registry.h"
@@ -23,16 +24,22 @@ camera_rotation_create_default (float yaw, float pitch)
 
   rotation.mouse_captured = true;
   rotation.enabled = true;
+  rotation.mouse_move_listener = 0;
 
   return rotation;
 }
 
-void
-camera_rotation_process_mouse (camera_rotation_component_t *rotation,
-                               double xpos, double ypos)
+static void
+mouse_event_callback (const event_t *event, void *user_data)
 {
-  if (!rotation->enabled || !rotation->mouse_captured)
+  camera_rotation_component_t *rotation
+      = (camera_rotation_component_t *)user_data;
+
+  if (!rotation || !rotation->enabled || !rotation->mouse_captured)
     return;
+
+  double xpos = (double)event->data.mouse.x;
+  double ypos = (double)event->data.mouse.y;
 
   if (rotation->first_mouse)
     {
@@ -63,9 +70,22 @@ result_t
 camera_rotation_component_start (ecs_world_t *world, entity_id_t entity,
                                  void *component_data)
 {
-  (void)world;
-  (void)entity;
-  (void)component_data;
+  camera_rotation_component_t *rotation
+      = (camera_rotation_component_t *)component_data;
+
+  event_system_t *event_system
+      = (event_system_t *)ecs_world_get_event_system (world);
+  if (!event_system)
+    {
+      LOG_WARNING (
+          "Camera Rotation",
+          "No event system available, component will not receive mouse "
+          "events");
+      return RESULT_SUCCESS;
+    }
+
+  rotation->mouse_move_listener = event_listen (
+      event_system, EVENT_MOUSE_MOVE, mouse_event_callback, rotation);
 
   LOG_INFO ("Camera Rotation", "Component started for entity %u", entity);
 
@@ -115,7 +135,13 @@ camera_rotation_component_update (ecs_world_t *world, entity_id_t entity,
 void
 camera_rotation_component_destroy (void *component_data)
 {
-  (void)component_data;
+  camera_rotation_component_t *rotation
+      = (camera_rotation_component_t *)component_data;
+
+  if (!rotation)
+    return;
+
+  rotation->mouse_move_listener = 0;
 }
 
 void

@@ -79,6 +79,7 @@ event_system_t *event_system_create (void);
 void event_system_destroy (event_system_t *system);
 
 result_t event_emit (event_system_t *system, const event_t *event);
+result_t event_broadcast (event_system_t *system, const event_t *event);
 void event_process (event_system_t *system);
 
 typedef uint32_t listener_id_t;
@@ -108,8 +109,20 @@ event_key_create (event_type_t type, int key, int mods)
 {
   event_t event = { 0 };
   event.type = type;
+  event.entity = INVALID_ENTITY;
   event.data.key.key = key;
   event.data.key.mods = mods;
+  return event;
+}
+
+static inline event_t
+event_mouse_move_create (float x, float y)
+{
+  event_t event = { 0 };
+  event.type = EVENT_MOUSE_MOVE;
+  event.entity = INVALID_ENTITY;
+  event.data.mouse.x = x;
+  event.data.mouse.y = y;
   return event;
 }
 
