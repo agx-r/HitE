@@ -15,4 +15,5 @@
   
   (entity (prefab "camera")
           (component "camera"
-                     (position 60 1382 58))))
+                     ; (position 60 1382 58))))
+                     (position -237 551 516))))
