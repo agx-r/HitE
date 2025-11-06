@@ -90,6 +90,7 @@ main (int argc, char **argv)
   (void)argv;
 
   logger_init ();
+  logger_set_level (LOG_LEVEL_DEBUG);
 
   LOG_INFO ("Main", "=== HitE ===");
   LOG_INFO ("Main", "High-performance Vulkan raymarching engine");
