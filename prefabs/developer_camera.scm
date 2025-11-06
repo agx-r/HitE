@@ -1,6 +1,6 @@
 (prefab
-  (name "camera")
-  (description "Camera entity with movement and rotation components")
+  (name "developer_camera")
+  (description "Camera entity with movement, logger and rotation components")
   
   (component "camera"
     (position 0 3 0)

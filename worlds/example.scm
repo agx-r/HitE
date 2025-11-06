@@ -17,6 +17,6 @@
     (component "shape"
       (position 0 0 0)))
   
-  (entity (prefab "camera")
+  (entity (prefab "developer_camera")
           (component "camera"
                      (position -237 551 516))))
