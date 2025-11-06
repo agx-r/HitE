@@ -7,6 +7,7 @@
 #include "torus.glsl"
 #include "plane.glsl"
 #include "terrain.glsl"
+#include "town.glsl"
 
 // To add a new shape
 // Create shapes/your_shape.glsl with shape_your_shape_eval(vec3 p, param1, param2, ...)
@@ -20,6 +21,7 @@ float eval_shape(vec3 local_p, vec4 position, vec4 dimensions, vec4 params) {
   if (t == 2u) return shape_torus_eval(local_p, dimensions.xy);
   if (t == 3u) return shape_plane_eval(local_p, dimensions.xyz, dimensions.w);
   if (t == 7u) return shape_terrain_eval(local_p, params.x); // params.x = seed
+  if (t == 8u) return shape_town_eval(local_p, params.x); // params.x = seed
   
   return 1e9;
 }
