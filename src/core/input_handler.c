@@ -72,3 +72,12 @@ input_handler_cleanup (input_handler_t *handler)
   glfwSetKeyCallback (handler->window, NULL);
   glfwSetCursorPosCallback (handler->window, NULL);
 }
+
+bool
+input_handler_get_key_state (const input_handler_t *handler, int key)
+{
+  if (!handler || !handler->window)
+    return false;
+
+  return glfwGetKey (handler->window, key) == GLFW_PRESS;
+}

@@ -2,7 +2,6 @@
 #define HITE_CAMERA_MOVEMENT_COMPONENT_H
 
 #include "../core/ecs.h"
-#include "../core/events.h"
 #include "../core/types.h"
 
 typedef struct
@@ -10,12 +9,7 @@ typedef struct
 
   float move_speed;
 
-  bool keys[1024];
-
   bool enabled;
-
-  listener_id_t key_press_listener;
-  listener_id_t key_release_listener;
 } ALIGN_64 camera_movement_component_t;
 
 result_t camera_movement_component_start (ecs_world_t *world,

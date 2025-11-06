@@ -478,3 +478,20 @@ ecs_world_get_event_system (const ecs_world_t *world)
     return NULL;
   return world->event_system;
 }
+
+void
+ecs_world_set_input_handler (ecs_world_t *world,
+                             struct input_handler_t *input_handler)
+{
+  if (!world)
+    return;
+  world->input_handler = input_handler;
+}
+
+struct input_handler_t *
+ecs_world_get_input_handler (const ecs_world_t *world)
+{
+  if (!world)
+    return NULL;
+  return world->input_handler;
+}

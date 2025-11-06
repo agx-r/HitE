@@ -67,6 +67,7 @@ struct ecs_world_t
   time_info_t time;
 
   struct event_system_t *event_system;
+  struct input_handler_t *input_handler;
 
   struct
   {
@@ -111,5 +112,9 @@ void ecs_iterate_components (ecs_world_t *world, component_id_t component_id,
 void ecs_world_set_event_system (ecs_world_t *world,
                                  struct event_system_t *event_system);
 struct event_system_t *ecs_world_get_event_system (const ecs_world_t *world);
+
+void ecs_world_set_input_handler (ecs_world_t *world,
+                                  struct input_handler_t *input_handler);
+struct input_handler_t *ecs_world_get_input_handler (const ecs_world_t *world);
 
 #endif

@@ -16,4 +16,6 @@ result_t input_handler_init (input_handler_t *handler,
                              event_system_t *event_system, GLFWwindow *window);
 void input_handler_cleanup (input_handler_t *handler);
 
+bool input_handler_get_key_state (const input_handler_t *handler, int key);
+
 #endif

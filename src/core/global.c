@@ -256,6 +256,9 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
 
   ecs_world_set_event_system (state->world_manager->active_world,
                               (struct event_system_t *)state->event_system);
+  ecs_world_set_input_handler (
+      state->world_manager->active_world,
+      (struct input_handler_t *)&state->input_handler);
 
   LOG_INFO ("Engine", "Registering components...");
   camera_component_register (state->world_manager->active_world);
