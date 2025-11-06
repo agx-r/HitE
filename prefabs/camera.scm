@@ -15,7 +15,6 @@
     (move-speed 10.0)
     (enabled #t))
 
-  (component "gui")
   (component "developer_overlay")
   
   (component "camera_rotation"
