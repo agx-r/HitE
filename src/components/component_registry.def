@@ -1,0 +1,18 @@
+// Component Registry Definition
+// This file lists all components in the system
+// Format: COMPONENT(name, header_file, register_fn, parse_fn, override_fn)
+// 
+// name: Scheme name of the component (e.g. "camera")
+// header_file: Header file name without .h (e.g. "camera_component")
+// register_fn: Registration function name (e.g. camera_component_register)
+// parse_fn: Parser function name (e.g. parse_camera_component)
+// override_fn: Override function name (NULL if not supported, or use parse_fn)
+
+COMPONENT(camera, camera_component, camera_component_register, parse_camera_component, parse_camera_component)
+COMPONENT(camera_movement, camera_movement_component, camera_movement_component_register, parse_camera_movement_component, NULL)
+COMPONENT(camera_rotation, camera_rotation_component, camera_rotation_component_register, parse_camera_rotation_component, NULL)
+COMPONENT(lighting, lighting_component, lighting_component_register, parse_lighting_component, NULL)
+COMPONENT(shape, shape_component, shape_component_register, parse_shape_component, apply_shape_component_override)
+COMPONENT(physics, physics_component, physics_component_register, NULL, NULL)
+COMPONENT(gui, gui_component, gui_component_register, parse_gui_component, NULL)
+COMPONENT(developer_overlay, developer_overlay_component, developer_overlay_component_register, parse_developer_overlay_component, NULL)

@@ -2,6 +2,7 @@
 #include "../components/camera_component.h"
 #include "../components/camera_movement_component.h"
 #include "../components/camera_rotation_component.h"
+#include "../components/component_registry.h"
 #include "../components/developer_overlay_component.h"
 #include "../components/gui_component.h"
 #include "../components/lighting_component.h"

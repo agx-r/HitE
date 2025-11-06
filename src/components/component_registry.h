@@ -16,4 +16,6 @@ void register_component_helper (
                              start_fn, update_fn, render_fn, destroy_fn,      \
                              display)
 
+void register_all_components (ecs_world_t *world);
+
 #endif
