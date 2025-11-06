@@ -658,6 +658,82 @@ apply_component_override (scheme_state_t *state, const char *component_name,
       apply_shape_component_override (state, sexp,
                                       (shape_component_t *)target_component);
     }
+  else if (strcmp (component_name, "camera") == 0)
+    {
+
+      camera_component_t *camera = (camera_component_t *)target_component;
+      pointer current = scheme_cdr_wrapper (state, sexp);
+      if (scheme_is_pair_wrapper (state, current))
+        current = scheme_cdr_wrapper (state, current);
+
+      while (scheme_is_pair_wrapper (state, current))
+        {
+          pointer field = scheme_car_wrapper (state, current);
+
+          if (scheme_is_pair_wrapper (state, field))
+            {
+              pointer field_name_obj = scheme_car_wrapper (state, field);
+              if (!scheme_is_symbol_wrapper (state, field_name_obj))
+                {
+                  current = scheme_cdr_wrapper (state, current);
+                  continue;
+                }
+
+              const char *field_name
+                  = scheme_symbol_name_wrapper (state, field_name_obj);
+              if (!field_name)
+                {
+                  current = scheme_cdr_wrapper (state, current);
+                  continue;
+                }
+
+              if (strcmp (field_name, "position") == 0)
+                {
+                  pointer pos_list = scheme_cdr_wrapper (state, field);
+                  scheme_parse_vec3 (state, pos_list, &camera->position);
+                }
+              else if (strcmp (field_name, "direction") == 0)
+                {
+                  pointer dir_list = scheme_cdr_wrapper (state, field);
+                  scheme_parse_vec3 (state, dir_list, &camera->direction);
+                }
+              else if (strcmp (field_name, "up") == 0)
+                {
+                  pointer up_list = scheme_cdr_wrapper (state, field);
+                  scheme_parse_vec3 (state, up_list, &camera->up);
+                }
+              else if (strcmp (field_name, "fov") == 0)
+                {
+                  pointer value = scheme_cadr_wrapper (state, field);
+                  scheme_parse_float (state, value, &camera->fov);
+                }
+              else if (strcmp (field_name, "near-plane") == 0)
+                {
+                  pointer value = scheme_cadr_wrapper (state, field);
+                  scheme_parse_float (state, value, &camera->near_plane);
+                }
+              else if (strcmp (field_name, "far-plane") == 0)
+                {
+                  pointer value = scheme_cadr_wrapper (state, field);
+                  scheme_parse_float (state, value, &camera->far_plane);
+                }
+              else if (strcmp (field_name, "background-color") == 0)
+                {
+                  pointer color_list = scheme_cdr_wrapper (state, field);
+                  scheme_parse_vec3 (state, color_list,
+                                     &camera->background_color);
+                }
+              else if (strcmp (field_name, "active") == 0)
+                {
+                  pointer value = scheme_cadr_wrapper (state, field);
+                  if (scheme_is_boolean_wrapper (state, value))
+                    camera->is_active = scheme_boolean_wrapper (state, value);
+                }
+            }
+
+          current = scheme_cdr_wrapper (state, current);
+        }
+    }
 }
 
 result_t

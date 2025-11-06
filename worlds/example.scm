@@ -13,4 +13,6 @@
 
   (entity (prefab "terrain"))
   
-  (entity (prefab "camera")))
+  (entity (prefab "camera")
+          (component "camera"
+                     (position 60 1382 58))))
