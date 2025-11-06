@@ -529,56 +529,6 @@ parse_camera_rotation_component (scheme_state_t *state, pointer sexp,
 }
 
 result_t
-parse_gui_component (scheme_state_t *state, pointer sexp,
-                     gui_component_t *out_component)
-{
-  if (!state || !sexp || !out_component)
-    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
-
-  memset (out_component, 0, sizeof (gui_component_t));
-  out_component->enabled = true;
-  out_component->camera_entity = INVALID_ENTITY;
-
-  pointer current = scheme_cdr_wrapper (state, sexp);
-  if (scheme_is_pair_wrapper (state, current))
-    current = scheme_cdr_wrapper (state, current);
-
-  while (scheme_is_pair_wrapper (state, current))
-    {
-      pointer field = scheme_car_wrapper (state, current);
-
-      if (scheme_is_pair_wrapper (state, field))
-        {
-          pointer field_name_obj = scheme_car_wrapper (state, field);
-          if (!scheme_is_symbol_wrapper (state, field_name_obj))
-            {
-              current = scheme_cdr_wrapper (state, current);
-              continue;
-            }
-
-          const char *field_name
-              = scheme_symbol_name_wrapper (state, field_name_obj);
-          if (!field_name)
-            {
-              current = scheme_cdr_wrapper (state, current);
-              continue;
-            }
-
-          if (strcmp (field_name, "enabled") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              if (scheme_is_boolean_wrapper (state, value))
-                out_component->enabled = scheme_boolean_wrapper (state, value);
-            }
-        }
-
-      current = scheme_cdr_wrapper (state, current);
-    }
-
-  return RESULT_SUCCESS;
-}
-
-result_t
 parse_developer_overlay_component (
     scheme_state_t *state, pointer sexp,
     developer_overlay_component_t *out_component)
@@ -588,7 +538,8 @@ parse_developer_overlay_component (
 
   memset (out_component, 0, sizeof (developer_overlay_component_t));
   out_component->enabled = true;
-  out_component->gui_entity = INVALID_ENTITY;
+  out_component->camera_entity = INVALID_ENTITY;
+  out_component->text_element_count = 0;
   out_component->fps_update_interval = 0.5f;
 
   pointer current = scheme_cdr_wrapper (state, sexp);

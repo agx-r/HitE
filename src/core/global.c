@@ -4,9 +4,7 @@
 #include "../components/camera_rotation_component.h"
 #include "../components/component_registry.h"
 #include "../components/developer_overlay_component.h"
-#include "../components/gui_component.h"
 #include "../components/lighting_component.h"
-#include "../components/physics_component.h"
 #include "../components/shape_component.h"
 #include "component_parsers.h"
 #include "prefab.h"
@@ -277,8 +275,6 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
   camera_rotation_component_register (state->world_manager->active_world);
   lighting_component_register (state->world_manager->active_world);
   shape_component_register (state->world_manager->active_world);
-  physics_component_register (state->world_manager->active_world);
-  gui_component_register (state->world_manager->active_world);
   developer_overlay_component_register (state->world_manager->active_world);
   printf ("[Engine] Components registered\n");
 

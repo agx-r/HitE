@@ -1,6 +1,5 @@
 #include "prefab.h"
 #include "../components/developer_overlay_component.h"
-#include "../components/gui_component.h"
 #include "component_parsers.h"
 #include "scheme_parser.h"
 
@@ -327,23 +326,6 @@ prefab_load (prefab_system_t *system, const char *filepath,
                       printf (
                           "[Prefab]   Failed to parse camera_rotation: %s\n",
                           res.message);
-                    }
-                }
-              else if (strcmp (comp_name, "gui") == 0)
-                {
-                  gui_component_t gui_data;
-                  result_t res
-                      = parse_gui_component (g_scheme_state, field, &gui_data);
-                  if (res.code == RESULT_OK)
-                    {
-                      prefab_add_component (prefab, "gui", &gui_data,
-                                            sizeof (gui_component_t));
-                      printf ("[Prefab]   GUI component parsed\n");
-                    }
-                  else
-                    {
-                      printf ("[Prefab]   Failed to parse gui: %s\n",
-                              res.message);
                     }
                 }
               else if (strcmp (comp_name, "developer_overlay") == 0)

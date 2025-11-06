@@ -13,6 +13,4 @@ COMPONENT(camera_movement, camera_movement_component, camera_movement_component_
 COMPONENT(camera_rotation, camera_rotation_component, camera_rotation_component_register, parse_camera_rotation_component, NULL)
 COMPONENT(lighting, lighting_component, lighting_component_register, parse_lighting_component, NULL)
 COMPONENT(shape, shape_component, shape_component_register, parse_shape_component, apply_shape_component_override)
-COMPONENT(physics, physics_component, physics_component_register, NULL, NULL)
-COMPONENT(gui, gui_component, gui_component_register, parse_gui_component, NULL)
 COMPONENT(developer_overlay, developer_overlay_component, developer_overlay_component_register, parse_developer_overlay_component, NULL)

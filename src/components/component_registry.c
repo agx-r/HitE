@@ -5,9 +5,7 @@
 #include "camera_movement_component.h"
 #include "camera_rotation_component.h"
 #include "developer_overlay_component.h"
-#include "gui_component.h"
 #include "lighting_component.h"
-#include "physics_component.h"
 #include "shape_component.h"
 
 #include "../core/component_parsers.h"
@@ -55,7 +53,5 @@ register_all_components (ecs_world_t *world)
   camera_rotation_component_register (world);
   lighting_component_register (world);
   shape_component_register (world);
-  physics_component_register (world);
-  gui_component_register (world);
   developer_overlay_component_register (world);
 }

@@ -20,7 +20,6 @@ static struct
           (component_parser_fn)parse_camera_rotation_component, NULL },
         { "lighting", (component_parser_fn)parse_lighting_component, NULL },
         { "shape", (component_parser_fn)parse_shape_component, NULL },
-        { "gui", (component_parser_fn)parse_gui_component, NULL },
         { "developer_overlay",
           (component_parser_fn)parse_developer_overlay_component, NULL },
         { NULL, NULL, NULL } };
