@@ -1,5 +1,6 @@
 #include "world_loader.h"
 #include "component_parsers.h"
+#include "logger.h"
 #include "scheme_parser.h"
 
 #include <stdio.h>
@@ -16,7 +17,7 @@ world_loader_init (void)
       g_world_scheme_state = hite_scheme_init ();
       if (!g_world_scheme_state)
         {
-          printf ("[World Loader] Warning: Failed to initialize TinyScheme\n");
+          LOG_WARNING ("World Loader", "Failed to initialize TinyScheme");
         }
     }
 }
@@ -222,9 +223,9 @@ parse_entity_template (scheme_state_t *state, pointer entity_sexp,
                         }
                       else
                         {
-                          printf ("[World Loader] Warning: Failed to parse "
-                                  "component: %s\n",
-                                  res.message);
+                          LOG_WARNING ("World Loader",
+                                       "Failed to parse component: %s",
+                                       res.message);
                           out_template->components[idx].data = NULL;
                           out_template->components[idx].data_size = 0;
                         }
@@ -395,8 +396,8 @@ world_load_from_file (const char *filepath, world_definition_t *out_definition)
                       size_t idx = out_definition->prefab_instance_count++;
                       out_definition->prefab_instances[idx].prefab_name
                           = strdup (prefab_name);
-                      printf ("[World Loader] Found prefab reference: %s\n",
-                              prefab_name);
+                      LOG_DEBUG ("World Loader", "Found prefab reference: %s",
+                                 prefab_name);
                     }
                   prefab_list
                       = scheme_cdr_wrapper (g_world_scheme_state, prefab_list);
@@ -412,17 +413,16 @@ world_load_from_file (const char *filepath, world_definition_t *out_definition)
               if (res.code == RESULT_OK)
                 {
                   out_definition->entity_template_count++;
-                  printf (
-                      "[World Loader] Parsed entity template: %s (%zu "
-                      "components)\n",
+                  LOG_DEBUG (
+                      "World Loader",
+                      "Parsed entity template: %s (%zu components)",
                       out_definition->entity_templates[idx].name,
                       out_definition->entity_templates[idx].component_count);
                 }
               else
                 {
-                  printf ("[World Loader] Warning: Failed to parse entity: "
-                          "%s\n",
-                          res.message);
+                  LOG_WARNING ("World Loader", "Failed to parse entity: %s",
+                               res.message);
                 }
             }
         }
@@ -430,10 +430,12 @@ world_load_from_file (const char *filepath, world_definition_t *out_definition)
       current = scheme_cdr_wrapper (g_world_scheme_state, current);
     }
 
-  printf ("[World Loader] Loaded world '%s' from %s\n",
-          out_definition->name ? out_definition->name : "Unnamed", filepath);
-  printf ("  Prefab instances: %zu\n", out_definition->prefab_instance_count);
-  printf ("  Entity templates: %zu\n", out_definition->entity_template_count);
+  LOG_INFO ("World Loader", "Loaded world '%s' from %s",
+            out_definition->name ? out_definition->name : "Unnamed", filepath);
+  LOG_DEBUG ("World Loader", "  Prefab instances: %zu",
+             out_definition->prefab_instance_count);
+  LOG_DEBUG ("World Loader", "  Entity templates: %zu",
+             out_definition->entity_template_count);
 
   return RESULT_SUCCESS;
 }

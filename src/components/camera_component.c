@@ -1,4 +1,5 @@
 #include "camera_component.h"
+#include "../core/logger.h"
 #include "component_registry.h"
 
 #include <stdio.h>
@@ -78,11 +79,11 @@ camera_component_start (ecs_world_t *world, entity_id_t entity,
 
   camera_component_t *camera = (camera_component_t *)component_data;
 
-  printf ("[Camera] Camera component started for entity %u\n", entity);
-  printf ("  Position: (%.2f, %.2f, %.2f)\n", camera->position.x,
-          camera->position.y, camera->position.z);
-  printf ("  Direction: (%.2f, %.2f, %.2f)\n", camera->direction.x,
-          camera->direction.y, camera->direction.z);
+  LOG_INFO ("Camera", "Camera component started for entity %u", entity);
+  LOG_DEBUG ("Camera", "  Position: (%.2f, %.2f, %.2f)", camera->position.x,
+             camera->position.y, camera->position.z);
+  LOG_DEBUG ("Camera", "  Direction: (%.2f, %.2f, %.2f)", camera->direction.x,
+             camera->direction.y, camera->direction.z);
 
   return RESULT_SUCCESS;
 }

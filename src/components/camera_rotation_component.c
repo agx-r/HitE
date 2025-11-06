@@ -1,4 +1,5 @@
 #include "camera_rotation_component.h"
+#include "../core/logger.h"
 #include "camera_component.h"
 #include "component_registry.h"
 
@@ -66,7 +67,7 @@ camera_rotation_component_start (ecs_world_t *world, entity_id_t entity,
   (void)entity;
   (void)component_data;
 
-  printf ("[Camera Rotation] Component started for entity %u\n", entity);
+  LOG_INFO ("Camera Rotation", "Component started for entity %u", entity);
 
   return RESULT_SUCCESS;
 }

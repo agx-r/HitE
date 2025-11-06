@@ -2,6 +2,7 @@
 #include "components/camera_movement_component.h"
 #include "components/camera_rotation_component.h"
 #include "core/global.h"
+#include "core/logger.h"
 #include "core/prefab.h"
 
 #include <GLFW/glfw3.h>
@@ -88,8 +89,10 @@ main (int argc, char **argv)
   (void)argc;
   (void)argv;
 
-  printf ("=== HitE ===\n");
-  printf ("High-performance Vulkan raymarching engine\n\n");
+  logger_init ();
+
+  LOG_INFO ("Main", "=== HitE ===");
+  LOG_INFO ("Main", "High-performance Vulkan raymarching engine");
 
   engine_config_t config = engine_config_default ();
 
@@ -99,9 +102,9 @@ main (int argc, char **argv)
   result_t result = engine_init (&state, &config);
   if (result.code != RESULT_OK)
     {
-      fprintf (stderr, "[Error] Engine initialization failed: %s\n",
-               result.message);
+      LOG_ERROR ("Main", "Engine initialization failed: %s", result.message);
       engine_cleanup (&state);
+      logger_shutdown ();
       return 1;
     }
 
@@ -111,10 +114,11 @@ main (int argc, char **argv)
   result = engine_load_world (&state, &config, &prefab_system);
   if (result.code != RESULT_OK)
     {
-      fprintf (stderr, "[Error] Failed to load world: %s\n", result.message);
+      LOG_ERROR ("Main", "Failed to load world: %s", result.message);
       if (prefab_system)
         prefab_system_destroy (prefab_system);
       engine_cleanup (&state);
+      logger_shutdown ();
       return 1;
     }
 
@@ -124,6 +128,7 @@ main (int argc, char **argv)
     prefab_system_destroy (prefab_system);
   engine_cleanup (&state);
 
-  printf ("\n[Engine] Bye\n");
+  LOG_INFO ("Main", "Bye");
+  logger_shutdown ();
   return 0;
 }

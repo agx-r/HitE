@@ -1,4 +1,5 @@
 #include "camera_movement_component.h"
+#include "../core/logger.h"
 #include "camera_component.h"
 #include "component_registry.h"
 
@@ -43,7 +44,7 @@ camera_movement_component_start (ecs_world_t *world, entity_id_t entity,
   (void)entity;
   (void)component_data;
 
-  printf ("[Camera Movement] Component started for entity %u\n", entity);
+  LOG_INFO ("Camera Movement", "Component started for entity %u", entity);
 
   return RESULT_SUCCESS;
 }

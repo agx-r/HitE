@@ -1,5 +1,6 @@
 #include "world.h"
 #include "component_parsers.h"
+#include "logger.h"
 #include "prefab.h"
 #include "world_loader.h"
 #include <stdio.h>
@@ -110,9 +111,10 @@ world_instantiate_templates (ecs_world_t *world,
         {
           if (!prefab_system)
             {
-              printf ("[World] Warning: Prefab '%s' referenced but no prefab "
-                      "system provided\n",
-                      tmpl->prefab_name);
+              LOG_WARNING (
+                  "World",
+                  "Prefab '%s' referenced but no prefab system provided",
+                  tmpl->prefab_name);
               continue;
             }
 
@@ -122,18 +124,17 @@ world_instantiate_templates (ecs_world_t *world,
               result_t res = prefab_instantiate (prefab, world, &entity);
               if (res.code != RESULT_OK)
                 {
-                  printf (
-                      "[World] Warning: Failed to instantiate prefab '%s': "
-                      "%s\n",
-                      tmpl->prefab_name, res.message);
+                  LOG_WARNING ("World",
+                               "Failed to instantiate prefab '%s': %s",
+                               tmpl->prefab_name, res.message);
                   continue;
                 }
             }
           else
             {
-              printf ("[World] Warning: Prefab '%s' not found for entity "
-                      "template\n",
-                      tmpl->prefab_name);
+              LOG_WARNING ("World",
+                           "Prefab '%s' not found for entity template",
+                           tmpl->prefab_name);
               continue;
             }
         }
@@ -156,8 +157,8 @@ world_instantiate_templates (ecs_world_t *world,
           component_id_t comp_id = ecs_get_component_id (world, comp_name);
           if (comp_id == INVALID_ENTITY)
             {
-              printf ("[World] Warning: Component '%s' not registered\n",
-                      comp_name);
+              LOG_WARNING ("World", "Component '%s' not registered",
+                           comp_name);
               continue;
             }
 
@@ -178,8 +179,9 @@ world_instantiate_templates (ecs_world_t *world,
                     }
                   else
                     {
-                      printf ("[World] Warning: Failed to get world scheme "
-                              "state for override\n");
+                      LOG_WARNING (
+                          "World",
+                          "Failed to get world scheme state for override");
                     }
                 }
               else if (comp_data)
@@ -197,15 +199,14 @@ world_instantiate_templates (ecs_world_t *world,
                       = ecs_add_component (world, entity, comp_id, comp_data);
                   if (result.code != RESULT_OK)
                     {
-                      printf ("[World] Warning: Failed to add component '%s': "
-                              "%s\n",
-                              comp_name, result.message);
+                      LOG_WARNING ("World", "Failed to add component '%s': %s",
+                                   comp_name, result.message);
                     }
                 }
               else
                 {
-                  printf ("[World] Warning: No component data for '%s'\n",
-                          comp_name);
+                  LOG_WARNING ("World", "No component data for '%s'",
+                               comp_name);
                 }
             }
         }

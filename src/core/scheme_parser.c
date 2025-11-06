@@ -1,6 +1,7 @@
 #include "scheme_parser.h"
 #include "../../external/tinyscheme/scheme-private.h"
 #include "../../external/tinyscheme/scheme.h"
+#include "logger.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,7 +24,7 @@ hite_scheme_init (void)
   scheme_set_input_port_file (state->sc, stdin);
   scheme_set_output_port_file (state->sc, stdout);
 
-  printf ("[TinyScheme] Initialized (version 1.42)\n");
+  LOG_INFO ("TinyScheme", "Initialized (version 1.42)");
 
   return state;
 }

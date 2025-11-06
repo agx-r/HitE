@@ -1,6 +1,7 @@
 #include "prefab.h"
 #include "../components/developer_overlay_component.h"
 #include "component_parsers.h"
+#include "logger.h"
 #include "scheme_parser.h"
 
 #include <dirent.h>
@@ -29,7 +30,7 @@ prefab_system_create (void)
   g_scheme_state = hite_scheme_init ();
   if (!g_scheme_state)
     {
-      printf ("[Prefab] Warning: Failed to initialize TinyScheme\n");
+      LOG_WARNING ("Prefab", "Failed to initialize TinyScheme");
     }
 
   return system;
@@ -244,15 +245,14 @@ prefab_load (prefab_system_t *system, const char *filepath,
                   = scheme_cadr_wrapper (g_scheme_state, field);
               if (!scheme_is_string_wrapper (g_scheme_state, comp_name_obj))
                 {
-                  printf (
-                      "[Prefab] Warning: Component name must be a string\n");
+                  LOG_WARNING ("Prefab", "Component name must be a string");
                   current = scheme_cdr_wrapper (g_scheme_state, current);
                   continue;
                 }
 
               const char *comp_name
                   = scheme_string_wrapper (g_scheme_state, comp_name_obj);
-              printf ("[Prefab] Parsing component: %s\n", comp_name);
+              LOG_DEBUG ("Prefab", "Parsing component: %s", comp_name);
 
               if (strcmp (comp_name, "shape") == 0)
                 {
@@ -263,12 +263,12 @@ prefab_load (prefab_system_t *system, const char *filepath,
                     {
                       prefab_add_component (prefab, "shape", &shape_data,
                                             sizeof (shape_component_t));
-                      printf ("[Prefab]   Shape component parsed\n");
+                      LOG_DEBUG ("Prefab", "Shape component parsed");
                     }
                   else
                     {
-                      printf ("[Prefab]   Failed to parse shape: %s\n",
-                              res.message);
+                      LOG_WARNING ("Prefab", "Failed to parse shape: %s",
+                                   res.message);
                     }
                 }
               else if (strcmp (comp_name, "camera") == 0)
@@ -280,12 +280,12 @@ prefab_load (prefab_system_t *system, const char *filepath,
                     {
                       prefab_add_component (prefab, "camera", &camera_data,
                                             sizeof (camera_component_t));
-                      printf ("[Prefab]   Camera component parsed\n");
+                      LOG_DEBUG ("Prefab", "Camera component parsed");
                     }
                   else
                     {
-                      printf ("[Prefab]   Failed to parse camera: %s\n",
-                              res.message);
+                      LOG_WARNING ("Prefab", "Failed to parse camera: %s",
+                                   res.message);
                     }
                 }
               else if (strcmp (comp_name, "camera_movement") == 0)
@@ -298,14 +298,14 @@ prefab_load (prefab_system_t *system, const char *filepath,
                       prefab_add_component (
                           prefab, "camera_movement", &movement_data,
                           sizeof (camera_movement_component_t));
-                      printf ("[Prefab]   Camera movement component "
-                              "parsed\n");
+                      LOG_DEBUG ("Prefab",
+                                 "  Camera movement component parsed");
                     }
                   else
                     {
-                      printf (
-                          "[Prefab]   Failed to parse camera_movement: %s\n",
-                          res.message);
+                      LOG_WARNING ("Prefab",
+                                   "Failed to parse camera_movement: %s",
+                                   res.message);
                     }
                 }
               else if (strcmp (comp_name, "camera_rotation") == 0)
@@ -318,14 +318,14 @@ prefab_load (prefab_system_t *system, const char *filepath,
                       prefab_add_component (
                           prefab, "camera_rotation", &rotation_data,
                           sizeof (camera_rotation_component_t));
-                      printf ("[Prefab]   Camera rotation component "
-                              "parsed\n");
+                      LOG_DEBUG ("Prefab",
+                                 "  Camera rotation component parsed");
                     }
                   else
                     {
-                      printf (
-                          "[Prefab]   Failed to parse camera_rotation: %s\n",
-                          res.message);
+                      LOG_WARNING ("Prefab",
+                                   "Failed to parse camera_rotation: %s",
+                                   res.message);
                     }
                 }
               else if (strcmp (comp_name, "developer_overlay") == 0)
@@ -338,14 +338,14 @@ prefab_load (prefab_system_t *system, const char *filepath,
                       prefab_add_component (
                           prefab, "developer_overlay", &overlay_data,
                           sizeof (developer_overlay_component_t));
-                      printf ("[Prefab]   Developer overlay component "
-                              "parsed\n");
+                      LOG_DEBUG ("Prefab",
+                                 "Developer overlay component parsed");
                     }
                   else
                     {
-                      printf (
-                          "[Prefab]   Failed to parse developer_overlay: %s\n",
-                          res.message);
+                      LOG_WARNING ("Prefab",
+                                   "Failed to parse developer_overlay: %s",
+                                   res.message);
                     }
                 }
               else if (strcmp (comp_name, "lighting") == 0)
@@ -357,18 +357,18 @@ prefab_load (prefab_system_t *system, const char *filepath,
                     {
                       prefab_add_component (prefab, "lighting", &lighting_data,
                                             sizeof (lighting_component_t));
-                      printf ("[Prefab]   Lighting component parsed\n");
+                      LOG_DEBUG ("Prefab", "Lightning component parsed");
                     }
                   else
                     {
-                      printf ("[Prefab]   Failed to parse lighting: %s\n",
-                              res.message);
+                      LOG_WARNING ("Prefab", "Failed to parse lighting: %s",
+                                   res.message);
                     }
                 }
               else
                 {
-                  printf ("[Prefab]   ! Unknown component type: %s\n",
-                          comp_name);
+                  LOG_WARNING ("Prefab", "Unknown component type: %s",
+                               comp_name);
                 }
             }
         }
@@ -381,9 +381,9 @@ prefab_load (prefab_system_t *system, const char *filepath,
   if (out_prefab)
     *out_prefab = prefab;
 
-  printf ("[Prefab] Loaded '%s' from %s (TinyScheme, %zu components)\n",
-          prefab->name ? prefab->name : "Unnamed", filepath,
-          prefab->component_count);
+  LOG_INFO ("Prefab", "Loaded '%s' from %s (TinyScheme, %zu components)",
+            prefab->name ? prefab->name : "Unnamed", filepath,
+            prefab->component_count);
 
   return RESULT_SUCCESS;
 }
@@ -431,15 +431,15 @@ prefab_load_directory (prefab_system_t *system, const char *directory_path)
         }
       else
         {
-          printf ("[Prefab] Warning: Failed to load %s: %s\n", filepath,
-                  result.message);
+          LOG_WARNING ("Prefab", "Failed to load %s: %s\n", filepath,
+                       result.message);
         }
     }
 
   closedir (dir);
 
-  printf ("[Prefab] Loaded %zu prefabs from %s\n", loaded_count,
-          directory_path);
+  LOG_INFO ("Prefab", "Loaded %zu prefabs from %s", loaded_count,
+            directory_path);
 
   return RESULT_SUCCESS;
 }
@@ -522,29 +522,29 @@ prefab_instantiate (const prefab_t *prefab, ecs_world_t *world,
           = ecs_get_component_id (world, comp->component_name);
       if (comp_id == INVALID_ENTITY)
         {
-          printf ("[Prefab] Warning: Component '%s' not registered in world\n",
-                  comp->component_name);
+          LOG_WARNING ("Prefab", "Component '%s' not registered in world\n",
+                       comp->component_name);
           continue;
         }
 
       result_t result = ecs_add_component (world, entity, comp_id, comp->data);
       if (result.code != RESULT_OK)
         {
-          printf ("[Prefab] Warning: Failed to add component '%s': %s\n",
-                  comp->component_name, result.message);
+          LOG_WARNING ("Prefab", "Failed to add component '%s': %s\n",
+                       comp->component_name, result.message);
         }
       else
         {
-          printf ("[Prefab]   Added component '%s' to entity %u\n",
-                  comp->component_name, entity);
+          LOG_INFO ("Prefab", "Added component '%s' to entity %u\n",
+                    comp->component_name, entity);
         }
     }
 
   if (out_entity)
     *out_entity = entity;
 
-  printf ("[Prefab] Instantiated '%s' as entity %u (%zu components)\n",
-          prefab->name, entity, prefab->component_count);
+  LOG_INFO ("Prefab", "Instantiated '%s' as entity %u (%zu components)\n",
+            prefab->name, entity, prefab->component_count);
 
   return RESULT_SUCCESS;
 }

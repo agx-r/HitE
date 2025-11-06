@@ -1,4 +1,5 @@
 #include "vulkan_core.h"
+#include "../core/logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,10 +12,16 @@ debug_callback (VkDebugUtilsMessageSeverityFlagBitsEXT severity,
                 const VkDebugUtilsMessengerCallbackDataEXT *callback_data,
                 void *user_data)
 {
+  (void)type;
+  (void)user_data;
 
   if (severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
     {
-      fprintf (stderr, "[Vulkan] %s\n", callback_data->pMessage);
+      log_level_t level
+          = (severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+                ? LOG_LEVEL_ERROR
+                : LOG_LEVEL_WARNING;
+      logger_log (level, "Vulkan", "%s", callback_data->pMessage);
     }
   return VK_FALSE;
 }
@@ -108,8 +115,8 @@ vulkan_init (vulkan_context_t *context, bool enable_validation)
   vkGetPhysicalDeviceMemoryProperties (context->physical_device,
                                        &context->memory_properties);
 
-  printf ("[Vulkan] Using device: %s\n",
-          context->device_properties.deviceName);
+  LOG_INFO ("Vulkan", "Using device: %s",
+            context->device_properties.deviceName);
 
   uint32_t queue_family_count = 0;
   vkGetPhysicalDeviceQueueFamilyProperties (context->physical_device,

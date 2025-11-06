@@ -1,4 +1,5 @@
 #include "developer_overlay_component.h"
+#include "../core/logger.h"
 #include "camera_component.h"
 #include "component_registry.h"
 
@@ -44,13 +45,12 @@ developer_overlay_component_start (ecs_world_t *world, entity_id_t entity,
     }
   else
     {
-      printf ("[DevOverlay] Warning: Failed to add FPS text: %s\n",
-              result.message);
+      LOG_WARNING ("DevOverlay", "Failed to add FPS text: %s", result.message);
     }
 
-  printf (
-      "[DevOverlay] Developer overlay started for entity %u (camera: %u)\n",
-      entity, camera_entity);
+  LOG_INFO ("DevOverlay",
+            "Developer overlay started for entity %u (camera: %u)", entity,
+            camera_entity);
 
   return RESULT_SUCCESS;
 }
@@ -101,18 +101,19 @@ developer_overlay_component_update (ecs_world_t *world, entity_id_t entity,
           developer_overlay_update_text (overlay, overlay->fps_text_index,
                                          fps_text);
 
-          printf ("[DevOverlay] FPS: %.1f (Frame time: %.3f ms)\n",
-                  overlay->current_fps,
-                  (overlay->frame_time_accumulator / overlay->frame_count)
-                      * 1000.0f);
+          LOG_DEBUG ("DevOverlay", "FPS: %.1f (Frame time: %.3f ms)",
+                     overlay->current_fps,
+                     (overlay->frame_time_accumulator / overlay->frame_count)
+                         * 1000.0f);
         }
 
       entity_id_t camera_entity = INVALID_ENTITY;
       camera_component_t *camera = camera_find_active (world, &camera_entity);
       if (camera)
         {
-          printf ("[DevOverlay] Camera: (%.2f, %.2f, %.2f)\n",
-                  camera->position.x, camera->position.y, camera->position.z);
+          LOG_DEBUG ("DevOverlay", "Camera: (%.2f, %.2f, %.2f)",
+                     camera->position.x, camera->position.y,
+                     camera->position.z);
 
           if (overlay->camera_pos_text_initialized)
             {

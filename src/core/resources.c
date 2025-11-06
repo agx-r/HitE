@@ -1,4 +1,5 @@
 #include "resources.h"
+#include "logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -210,7 +211,7 @@ resource_check_reload (resource_manager_t *manager)
       time_t current_mtime = get_file_mtime (res->file_path);
       if (current_mtime > res->last_modified)
         {
-          printf ("[Resources] Hot reload: %s\n", res->file_path);
+          LOG_INFO ("Resources", "Hot reload: %s", res->file_path);
           resource_reload (manager, res->id);
         }
     }

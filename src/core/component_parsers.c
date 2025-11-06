@@ -1,6 +1,7 @@
 #include "component_parsers.h"
 #include "../components/lighting_component.h"
 #include "../components/shape_component.h"
+#include "logger.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -11,17 +12,17 @@ apply_shape_component_override (scheme_state_t *state, pointer sexp,
 {
   if (!state || !sexp || !target)
     {
-      printf ("[Component Override] Invalid arguments for shape override\n");
+      LOG_ERROR ("Component Override", "Invalid arguments for shape override");
       return;
     }
 
   if (!scheme_is_pair_wrapper (state, sexp))
     {
-      printf ("[Component Override] S-expression is not a pair\n");
+      LOG_ERROR ("Component Override", "S-expression is not a pair");
       return;
     }
 
-  printf ("[Component Override] Parsing shape component override\n");
+  LOG_DEBUG ("Component Override", "Parsing shape component override");
 
   pointer current = scheme_cdr_wrapper (state, sexp);
   if (scheme_is_pair_wrapper (state, current))
@@ -61,18 +62,16 @@ apply_shape_component_override (scheme_state_t *state, pointer sexp,
                                                 &target->transform.position);
               if (res.code == RESULT_OK)
                 {
-                  printf (
-                      "[Component Override] Updated position to: %.2f %.2f "
-                      "%.2f\n",
-                      target->transform.position.x,
-                      target->transform.position.y,
-                      target->transform.position.z);
+                  LOG_DEBUG ("Component Override",
+                             "Updated position to: %.2f %.2f %.2f",
+                             target->transform.position.x,
+                             target->transform.position.y,
+                             target->transform.position.z);
                 }
               else
                 {
-                  printf (
-                      "[Component Override] Failed to parse position: %s\n",
-                      res.message);
+                  LOG_WARNING ("Component Override",
+                               "Failed to parse position: %s", res.message);
                 }
             }
           else if (strcmp (field_name, "dimensions") == 0)
@@ -120,12 +119,12 @@ parse_shape_type (scheme_state_t *state, pointer sexp, shape_type_t *out_type)
   if (scheme_is_string_wrapper (state, sexp))
     {
       type_str = scheme_string_wrapper (state, sexp);
-      printf ("[Component Parser] Type is a string: %s\n", type_str);
+      LOG_DEBUG ("Component Parser", "Type is a string: %s", type_str);
     }
   else if (scheme_is_symbol_wrapper (state, sexp))
     {
       type_str = scheme_symbol_name_wrapper (state, sexp);
-      printf ("[Component Parser] Type is a symbol: %s\n", type_str);
+      LOG_DEBUG ("Component Parser", "Type is a symbol: %s", type_str);
     }
   else
     {
@@ -219,7 +218,7 @@ parse_shape_component (scheme_state_t *state, pointer sexp,
               result_t res
                   = parse_shape_type (state, type_value, &out_component->type);
               if (res.code != RESULT_OK)
-                printf ("[Component Parser] Warning: %s\n", res.message);
+                LOG_WARNING ("Component Parser", "%s", res.message);
             }
 
           else if (strcmp (field_name, "position") == 0)
@@ -228,8 +227,8 @@ parse_shape_component (scheme_state_t *state, pointer sexp,
               result_t res = scheme_parse_vec3 (
                   state, pos_list, &out_component->transform.position);
               if (res.code != RESULT_OK)
-                printf ("[Component Parser] Warning parsing position: %s\n",
-                        res.message);
+                LOG_WARNING ("Component Parser",
+                             "Warning parsing position: %s", res.message);
             }
 
           else if (strcmp (field_name, "dimensions") == 0)
@@ -238,8 +237,8 @@ parse_shape_component (scheme_state_t *state, pointer sexp,
               result_t res = scheme_parse_vec3 (state, dim_list,
                                                 &out_component->dimensions);
               if (res.code != RESULT_OK)
-                printf ("[Component Parser] Warning parsing dimensions: %s\n",
-                        res.message);
+                LOG_WARNING ("Component Parser",
+                             "Warning parsing dimensions: %s", res.message);
             }
 
           else if (strcmp (field_name, "color") == 0)
@@ -248,8 +247,8 @@ parse_shape_component (scheme_state_t *state, pointer sexp,
               result_t res = scheme_parse_vec4 (state, color_list,
                                                 &out_component->color);
               if (res.code != RESULT_OK)
-                printf ("[Component Parser] Warning parsing color: %s\n",
-                        res.message);
+                LOG_WARNING ("Component Parser", "Warning parsing color: %s",
+                             res.message);
             }
 
           else if (strcmp (field_name, "visible") == 0)
@@ -269,8 +268,8 @@ parse_shape_component (scheme_state_t *state, pointer sexp,
                   result_t res = scheme_parse_float (
                       state, seed_value, &out_component->roughness);
                   if (res.code != RESULT_OK)
-                    printf ("[Component Parser] Warning parsing seed: %s\n",
-                            res.message);
+                    LOG_WARNING ("Component Parser",
+                                 "Warning parsing seed: %s", res.message);
                 }
             }
         }
@@ -598,15 +597,15 @@ apply_component_override (scheme_state_t *state, const char *component_name,
 {
   if (!state || !component_name || !sexp || !target_component)
     {
-      printf ("[Component Override] Invalid arguments: state=%p, name=%s, "
-              "sexp=%p, target=%p\n",
-              (void *)state, component_name ? component_name : "NULL",
-              (void *)sexp, target_component);
+      LOG_ERROR ("Component Override",
+                 "Invalid arguments: state=%p, name=%s, sexp=%p, target=%p",
+                 (void *)state, component_name ? component_name : "NULL",
+                 (void *)sexp, target_component);
       return;
     }
 
-  printf ("[Component Override] Applying override for component '%s'\n",
-          component_name);
+  LOG_DEBUG ("Component Override", "Applying override for component '%s'",
+             component_name);
 
   if (strcmp (component_name, "shape") == 0)
     {

@@ -7,6 +7,7 @@
 #include "../components/lighting_component.h"
 #include "../components/shape_component.h"
 #include "component_parsers.h"
+#include "logger.h"
 #include "prefab.h"
 #include "scheme_parser.h"
 #include "world_loader.h"
@@ -216,7 +217,7 @@ engine_init (engine_state_t *state, const engine_config_t *config)
   if (result.code != RESULT_OK)
     return result;
 
-  printf ("[Engine] Initialized successfully\n");
+  LOG_INFO ("Engine", "Initialized successfully");
 
   return RESULT_SUCCESS;
 }
@@ -239,7 +240,7 @@ engine_cleanup (engine_state_t *state)
     }
   glfwTerminate ();
 
-  printf ("[Engine] Cleaned up\n");
+  LOG_INFO ("Engine", "Cleaned up");
 }
 
 result_t
@@ -269,21 +270,21 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
                            "Failed to create ECS world");
     }
 
-  printf ("[Engine] Registering components...\n");
+  LOG_INFO ("Engine", "Registering components...");
   camera_component_register (state->world_manager->active_world);
   camera_movement_component_register (state->world_manager->active_world);
   camera_rotation_component_register (state->world_manager->active_world);
   lighting_component_register (state->world_manager->active_world);
   shape_component_register (state->world_manager->active_world);
   developer_overlay_component_register (state->world_manager->active_world);
-  printf ("[Engine] Components registered\n");
+  LOG_INFO ("Engine", "Components registered");
 
   world_definition_t world_def = { 0 };
   result_t result
       = world_load_from_file (config->initial_world_path, &world_def);
   if (result.code != RESULT_OK)
     {
-      printf ("[Warning] Failed to load world file: %s\n", result.message);
+      LOG_WARNING ("Engine", "Failed to load world file: %s", result.message);
       world_def.name = "Default World";
       world_def.fixed_delta_time = 1.0f / 60.0f;
       world_def.use_fixed_timestep = false;
@@ -304,7 +305,7 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
   else
     prefab_system_destroy (prefab_system);
 
-  printf ("[Engine] World loaded successfully\n");
+  LOG_INFO ("Engine", "World loaded successfully");
 
   return RESULT_SUCCESS;
 }
@@ -330,7 +331,7 @@ engine_run (engine_state_t *state)
 {
   state->last_time = glfwGetTime ();
 
-  printf ("\n[Engine] Starting main loop...\n");
+  LOG_INFO ("Engine", "Starting main loop...");
 
   while (state->running && !glfwWindowShouldClose (state->window))
     {

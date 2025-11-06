@@ -10,6 +10,7 @@
 
 #include "../core/component_parsers.h"
 #include "../core/ecs.h"
+#include "../core/logger.h"
 
 void
 register_component_helper (ecs_world_t *world, const char *name,
@@ -22,7 +23,7 @@ register_component_helper (ecs_world_t *world, const char *name,
 {
   if (!world || !name)
     {
-      printf ("[Component Registry] Invalid arguments\n");
+      LOG_ERROR ("Component Registry", "Invalid arguments");
       return;
     }
 
@@ -40,8 +41,8 @@ register_component_helper (ecs_world_t *world, const char *name,
   result_t result = ecs_register_component (world, &descriptor, &out_id);
   if (result.code != RESULT_OK)
     {
-      printf ("[Component Registry] Failed to register component '%s': %s\n",
-              name, result.message);
+      LOG_ERROR ("Component Registry", "Failed to register component '%s': %s",
+                 name, result.message);
     }
 }
 
