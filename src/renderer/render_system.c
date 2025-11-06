@@ -23,7 +23,7 @@ shape_to_sdf_object (const shape_component_t *shape, sdf_object_t *sdf)
   sdf->dimensions = (vec4_t){ shape->dimensions.x, shape->dimensions.y,
                               shape->dimensions.z, (float)shape->type };
 
-  if (shape->type == SHAPE_TERRAIN)
+  if (shape->type == SHAPE_TERRAIN || shape->type == SHAPE_CITADEL)
     {
       sdf->params = (vec4_t){ shape->roughness, 0.0f, 0.0f, 0.0f };
     }

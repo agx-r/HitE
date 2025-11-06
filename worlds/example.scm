@@ -11,9 +11,12 @@
   ;   (component "shape"
   ;     (position 0 8 0)))
 
-  (entity (prefab "terrain"))
+  ; (entity (prefab "terrain"))
+  
+  (entity (prefab "citadel")
+    (component "shape"
+      (position 0 0 0)))
   
   (entity (prefab "camera")
           (component "camera"
-                     ; (position 60 1382 58))))
                      (position -237 551 516))))

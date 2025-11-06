@@ -96,7 +96,8 @@ apply_shape_component_override (scheme_state_t *state, pointer sexp,
           else if (strcmp (field_name, "seed") == 0)
             {
               pointer seed_value = scheme_cadr_wrapper (state, field);
-              if (target->type == SHAPE_TERRAIN)
+              if (target->type == SHAPE_TERRAIN
+                  || target->type == SHAPE_CITADEL)
                 {
                   scheme_parse_float (state, seed_value, &target->roughness);
                 }
@@ -151,6 +152,8 @@ parse_shape_type (scheme_state_t *state, pointer sexp, shape_type_t *out_type)
     *out_type = SHAPE_CONE;
   else if (strcmp (type_str, "terrain") == 0)
     *out_type = SHAPE_TERRAIN;
+  else if (strcmp (type_str, "citadel") == 0)
+    *out_type = SHAPE_CITADEL;
   else
     {
       char err[128];
@@ -260,7 +263,8 @@ parse_shape_component (scheme_state_t *state, pointer sexp,
           else if (strcmp (field_name, "seed") == 0)
             {
               pointer seed_value = scheme_cadr_wrapper (state, field);
-              if (out_component->type == SHAPE_TERRAIN)
+              if (out_component->type == SHAPE_TERRAIN
+                  || out_component->type == SHAPE_CITADEL)
                 {
                   result_t res = scheme_parse_float (
                       state, seed_value, &out_component->roughness);

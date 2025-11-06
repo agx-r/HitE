@@ -2,34 +2,64 @@
 #define SHAPE_TERRAIN_GLSL
 #include "shape_common.glsl"
 
-// Fractal "Mega Citadel" DE with orbit color accumulator
-vec3 orbitColor;
-float terrain_de(vec3 p) {
-    float scale = 1.4731;
-    float angle1 = 0.0;
-    float angle2 = 0.0;
-    vec3 shift = vec3(-10.27, 3.28, -1.90);
-    vec3 color = vec3(1.17, 0.07, 1.27);
-    vec2 a1 = vec2(sin(angle1), cos(angle1));
-    vec2 a2 = vec2(sin(angle2), cos(angle2));
-    mat2 rmZ = mat2(a1.y, a1.x, -a1.x, a1.y);
-    mat2 rmX = mat2(a2.y, a2.x, -a2.x, a2.y);
-    float s = 1.0;
-    orbitColor = vec3(0.0);
-    for (int i = 0; i < 11; ++i) {
-        p = abs(p);
-        p.xy *= rmZ;
-        p.xy += min(p.x - p.y, 0.0) * vec2(-1.0, 1.0);
-        p.xz += min(p.x - p.z, 0.0) * vec2(-1.0, 1.0);
-        p.yz += min(p.y - p.z, 0.0) * vec2(-1.0, 1.0);
-        p.yz *= rmX;
-        p *= scale;
-        s *= scale;
-        p += shift;
-        orbitColor = max(orbitColor, p * color);
+float escape;
+
+float snoise(vec2 p) {
+    vec2 f = fract(p);
+    p = floor(p);
+    float v = p.x+p.y*1000.0;
+    vec4 r = vec4(v, v+1.0, v+1000.0, v+1001.0);
+    r = fract(100000.0*sin(r*.001));
+    f = f*f*(3.0-2.0*f);
+    return 2.0*(mix(mix(r.x, r.y, f.x), mix(r.z, r.w, f.x), f.y))-1.0;
+}
+
+float terrain(vec2 p, int octaves) {
+    float h = 0.0;
+    float w = 0.5;
+    float m = 0.4;
+    for (int i=0; i<12; i++) {
+        if (i==octaves) break;
+        h += w * snoise((p * m));
+        w *= 0.5;
+        m *= 2.0;
     }
-    vec3 d = abs(p) - vec3(6.0);
-    return (min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, 0.0))) / s;
+    return h;
+}
+
+float terrainSand(vec2 p, int octaves) {
+    float h = 0.0;
+    float f = 1.0;
+    for (int i=0 ; i<12 ; i++) {
+        if (i==octaves) break;
+        h += abs(snoise(p*f)/f);
+        f *= 2.0;
+    }
+    return h;
+}
+
+float terrain_de(vec3 p) {
+    float dMin = 28.0;
+    float d;
+    escape = -1.0;
+    int octaves = 9;
+    float h = terrain(p.xz, octaves);
+    h += smoothstep(0.0, 1.1, h);
+    h += smoothstep(-0.1, 1.0, p.y)*0.6;
+    d = p.y - h;
+    if (d<dMin) { // Mountains
+        dMin = d;
+        escape = 0.0;
+    }
+    if (h<0.5) { // Sand dunes
+        float s = 0.3 * terrainSand(p.xz*0.2, octaves);
+        d = p.y -0.35 + s;
+        if (d<dMin) {
+            dMin = d;
+            escape = 1.1;
+        }
+    }
+    return dMin;
 }
 
 float shape_terrain_eval(vec3 p, float seed) { return 100*terrain_de(p/100); }
