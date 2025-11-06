@@ -16,6 +16,8 @@ typedef struct
 
   size_t fps_text_index;
   bool fps_text_initialized;
+  size_t camera_pos_text_index;
+  bool camera_pos_text_initialized;
 
   bool enabled;
 } ALIGN_64 developer_overlay_component_t;

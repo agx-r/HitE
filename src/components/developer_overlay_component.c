@@ -1,4 +1,5 @@
 #include "developer_overlay_component.h"
+#include "camera_component.h"
 #include "component_registry.h"
 #include "gui_component.h"
 
@@ -143,6 +144,24 @@ developer_overlay_component_update (ecs_world_t *world, entity_id_t entity,
                   overlay->current_fps,
                   (overlay->frame_time_accumulator / overlay->frame_count)
                       * 1000.0f);
+        }
+
+      entity_id_t camera_entity = INVALID_ENTITY;
+      camera_component_t *camera = camera_find_active (world, &camera_entity);
+      if (camera)
+        {
+          printf ("[DevOverlay] Camera: (%.2f, %.2f, %.2f)\n",
+                  camera->position.x, camera->position.y, camera->position.z);
+
+          if (gui && overlay->camera_pos_text_initialized)
+            {
+              char camera_text[128];
+              snprintf (camera_text, sizeof (camera_text),
+                        "Camera: (%.2f, %.2f, %.2f)", camera->position.x,
+                        camera->position.y, camera->position.z);
+              gui_update_text (gui, overlay->camera_pos_text_index,
+                               camera_text);
+            }
         }
 
       overlay->frame_time_accumulator = 0.0f;

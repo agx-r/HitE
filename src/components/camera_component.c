@@ -20,6 +20,8 @@ camera_create_default (vec3_t position, vec3_t direction)
   camera.near_plane = 0.1f;
   camera.far_plane = 1000.0f;
 
+  camera.background_color = (vec3_t){ 0.06f, 0.06f, 0.06f, 0.0f };
+
   camera.is_active = true;
 
   return camera;

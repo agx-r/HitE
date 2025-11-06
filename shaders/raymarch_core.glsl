@@ -68,15 +68,22 @@ RaymarchResult raymarch(vec3 ro, vec3 rd, vec3 camera_pos) {
       result.normal_pos = vec4(normal * 0.5 + 0.5, 1.0); // Normalize to 0..1 range
       return result;
     }
+    
+    // Fade to background based on distance
+    // Start fading at 70% of MAX_DIST, fully faded at MAX_DIST
+    float fade_start = MAX_DIST * 0.7;
+    if (depth > fade_start) {
+      float fade_t = (depth - fade_start) / (MAX_DIST - fade_start);
+      fade_t = smoothstep(0.0, 1.0, fade_t);
+      color.rgb = mix(color.rgb, ubo.background_color.rgb, fade_t);
+    }
 
     depth += dist;
     if (depth >= MAX_DIST) break;
   }
 
-  // Background gradient
-  float t = rd.y * 0.5 + 0.5;
-  vec3 bg = mix(vec3(0.06, 0.06, 0.06), vec3(0.1, 0.1, 0.1), t);
-  result.color = vec4(bg, MAX_DIST);
+  // Background color from camera component
+  result.color = vec4(ubo.background_color.rgb, MAX_DIST);
   result.normal_pos = vec4(0.5, 0.5, 1.0, 0.0); // No hit
   return result;
 }

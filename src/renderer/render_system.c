@@ -251,6 +251,24 @@ render_system_render_frame (render_system_t *system, ecs_world_t *world,
   uniforms.resolution = (vec2_t){ (float)system->raymarcher.width,
                                   (float)system->raymarcher.height, 0, 0 };
 
+  entity_id_t camera_entity_for_bg = INVALID_ENTITY;
+  camera_component_t *camera_for_bg = NULL;
+  if (world)
+    {
+      camera_for_bg = camera_find_active (world, &camera_entity_for_bg);
+    }
+  if (camera_for_bg)
+    {
+      uniforms.background_color
+          = (vec4_t){ camera_for_bg->background_color.x,
+                      camera_for_bg->background_color.y,
+                      camera_for_bg->background_color.z, 0 };
+    }
+  else
+    {
+      uniforms.background_color = (vec4_t){ 0.06f, 0.06f, 0.06f, 0 };
+    }
+
   uniforms.time = time;
 
   uniforms.object_count = (system->sdf_object_count > MAX_SDF_OBJECTS)
@@ -293,6 +311,18 @@ render_system_render_frame (render_system_t *system, ecs_world_t *world,
       lighting_uniforms.resolution
           = (vec2_t){ (float)system->raymarcher.width,
                       (float)system->raymarcher.height, 0, 0 };
+      if (camera)
+        {
+          lighting_uniforms.background_color
+              = (vec4_t){ camera->background_color.x,
+                          camera->background_color.y,
+                          camera->background_color.z, 0 };
+        }
+      else
+        {
+          lighting_uniforms.background_color
+              = (vec4_t){ 0.06f, 0.06f, 0.06f, 0 };
+        }
       lighting_uniforms.ambient_strength = lighting->ambient_strength;
       lighting_uniforms.diffuse_strength = lighting->diffuse_strength;
       lighting_uniforms.shadow_bias = lighting->shadow_bias;

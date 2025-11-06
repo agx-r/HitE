@@ -15,6 +15,8 @@ typedef struct
   float near_plane;
   float far_plane;
 
+  vec3_t background_color;
+
   bool is_active;
 } ALIGN_64 camera_component_t;
 

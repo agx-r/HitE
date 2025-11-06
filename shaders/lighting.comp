@@ -10,13 +10,13 @@ layout (binding = 0) uniform LightingUniforms
   vec4 camera_position;    // xyz = position, w = unused
   vec4 camera_direction;  // xyz = direction, w = unused
   vec4 resolution;         // xy = resolution, zw = unused
+  vec4 background_color;   // xyz = background color, w = unused
   float ambient_strength;
   float diffuse_strength;
   float shadow_bias;
   float shadow_softness;
   uint shadow_steps;
   uint object_count;
-  float _padding[1];
 }
 lighting_ubo;
 
@@ -181,17 +181,31 @@ void main() {
     diffuse = diffuse * sun_light; // Apply sun color tint
     
     // Final color is ambient (always present) + diffuse (only when lit)
-    // Make shadows more pronounced by reducing ambient in shadowed areas
+    // Make shadows blend towards background color
     float shadow_factor = max(shadow, 0.2); // Allow darker shadows but keep minimum visibility
-    final_color = ambient * shadow_factor + diffuse;
+    vec3 lit_color = ambient * shadow_factor + diffuse;
+    
+    // Blend shadows towards background color
+    float shadow_blend = 1.0 - shadow;
+    final_color = mix(lit_color, lighting_ubo.background_color.rgb, shadow_blend * 0.6);
     
     // Clamp to prevent overbrightening
     final_color = min(final_color, vec3(1.0));
   } else {
-    // Background - keep original color
-    final_color = surface_color;
+    // Background - use background color from camera
+    final_color = lighting_ubo.background_color.rgb;
   }
   
+  // Depth-based fade to background color
+  // Use same max distance as raymarcher (100.0)
+  const float RAYMARCH_MAX_DIST = 100.0;
+  float fade_start = RAYMARCH_MAX_DIST * 0.7;
+  float fade_t = 0.0;
+  if (depth >= fade_start) {
+    fade_t = smoothstep(0.0, 1.0, (depth - fade_start) / (RAYMARCH_MAX_DIST - fade_start));
+  }
+  final_color = mix(final_color, lighting_ubo.background_color.rgb, fade_t);
+
   // Convert to sRGB and write
   final_color = linear_to_srgb(final_color);
   imageStore(output_image, pixel_coords, vec4(final_color, 1.0));

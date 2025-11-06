@@ -32,6 +32,6 @@ float terrain_de(vec3 p) {
     return (min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, 0.0))) / s;
 }
 
-float shape_terrain_eval(vec3 p, float seed) { return terrain_de(p); }
+float shape_terrain_eval(vec3 p, float seed) { return 10*terrain_de(p/10); }
 
 #endif

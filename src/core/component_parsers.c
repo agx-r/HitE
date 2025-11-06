@@ -291,6 +291,7 @@ parse_camera_component (scheme_state_t *state, pointer sexp,
   out_component->fov = 70.0f;
   out_component->near_plane = 0.1f;
   out_component->far_plane = 1000.0f;
+  out_component->background_color = (vec3_t){ 0.06f, 0.06f, 0.06f, 0.0f };
   out_component->is_active = true;
 
   pointer current = scheme_cdr_wrapper (state, sexp);
@@ -360,6 +361,13 @@ parse_camera_component (scheme_state_t *state, pointer sexp,
               if (scheme_is_boolean_wrapper (state, value))
                 out_component->is_active
                     = scheme_boolean_wrapper (state, value);
+            }
+
+          else if (strcmp (field_name, "background-color") == 0)
+            {
+              pointer color_list = scheme_cdr_wrapper (state, field);
+              scheme_parse_vec3 (state, color_list,
+                                 &out_component->background_color);
             }
         }
 

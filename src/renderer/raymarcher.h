@@ -13,10 +13,11 @@ typedef struct
   vec4_t camera_position;
   vec4_t camera_direction;
   vec2_t resolution;
+  vec4_t background_color;
   float time;
   uint32_t object_count;
 
-  float _padding[2];
+  float _padding[1];
 } ALIGN_64 raymarch_uniforms_t;
 
 typedef struct
@@ -84,13 +85,13 @@ typedef struct
   vec4_t camera_position;
   vec4_t camera_direction;
   vec2_t resolution;
+  vec4_t background_color;
   float ambient_strength;
   float diffuse_strength;
   float shadow_bias;
   float shadow_softness;
   uint32_t shadow_steps;
   uint32_t object_count;
-  float _padding[1];
 } ALIGN_64 lighting_uniforms_t;
 
 result_t raymarcher_load_lighting_shader (raymarcher_t *raymarcher,
