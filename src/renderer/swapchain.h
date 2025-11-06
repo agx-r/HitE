@@ -20,8 +20,9 @@ typedef struct
   VkDescriptorPool descriptor_pool;
   VkDescriptorSet descriptor_set;
 
-  VkSemaphore image_available;
-  VkSemaphore render_finished;
+  VkSemaphore *image_available_semaphores;
+  VkSemaphore *render_finished_semaphores;
+  VkFence command_fence;
 } swapchain_t;
 
 result_t swapchain_create (vulkan_context_t *context, GLFWwindow *window,

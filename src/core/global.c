@@ -331,12 +331,6 @@ engine_run (engine_state_t *state)
   state->last_time = glfwGetTime ();
 
   printf ("\n[Engine] Starting main loop...\n");
-  printf ("Controls:\n");
-  printf ("  WASD - Move camera\n");
-  printf ("  Mouse - Look around\n");
-  printf ("  Space - Move up\n");
-  printf ("  Shift - Move down\n");
-  printf ("  ESC - Exit\n\n");
 
   while (state->running && !glfwWindowShouldClose (state->window))
     {

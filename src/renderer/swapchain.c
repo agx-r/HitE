@@ -139,10 +139,73 @@ swapchain_create (vulkan_context_t *context, GLFWwindow *window,
   VkSemaphoreCreateInfo semaphore_info = { 0 };
   semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-  vkCreateSemaphore (context->device, &semaphore_info, NULL,
-                     &swapchain->image_available);
-  vkCreateSemaphore (context->device, &semaphore_info, NULL,
-                     &swapchain->render_finished);
+  swapchain->image_available_semaphores
+      = malloc (swapchain->image_count * sizeof (VkSemaphore));
+  swapchain->render_finished_semaphores
+      = malloc (swapchain->image_count * sizeof (VkSemaphore));
+
+  for (uint32_t i = 0; i < swapchain->image_count; i++)
+    {
+      if (vkCreateSemaphore (context->device, &semaphore_info, NULL,
+                             &swapchain->image_available_semaphores[i])
+          != VK_SUCCESS)
+        {
+
+          for (uint32_t j = 0; j < i; j++)
+            {
+              vkDestroySemaphore (context->device,
+                                  swapchain->image_available_semaphores[j],
+                                  NULL);
+            }
+          free (swapchain->image_available_semaphores);
+          free (swapchain->render_finished_semaphores);
+          return RESULT_ERROR (RESULT_ERROR_VULKAN,
+                               "Failed to create image_available semaphore");
+        }
+
+      if (vkCreateSemaphore (context->device, &semaphore_info, NULL,
+                             &swapchain->render_finished_semaphores[i])
+          != VK_SUCCESS)
+        {
+
+          for (uint32_t j = 0; j <= i; j++)
+            {
+              vkDestroySemaphore (context->device,
+                                  swapchain->image_available_semaphores[j],
+                                  NULL);
+            }
+          for (uint32_t j = 0; j < i; j++)
+            {
+              vkDestroySemaphore (context->device,
+                                  swapchain->render_finished_semaphores[j],
+                                  NULL);
+            }
+          free (swapchain->image_available_semaphores);
+          free (swapchain->render_finished_semaphores);
+          return RESULT_ERROR (RESULT_ERROR_VULKAN,
+                               "Failed to create render_finished semaphore");
+        }
+    }
+
+  VkFenceCreateInfo fence_info = { 0 };
+  fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+  fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+  if (vkCreateFence (context->device, &fence_info, NULL,
+                     &swapchain->command_fence)
+      != VK_SUCCESS)
+    {
+
+      for (uint32_t i = 0; i < swapchain->image_count; i++)
+        {
+          vkDestroySemaphore (context->device,
+                              swapchain->image_available_semaphores[i], NULL);
+          vkDestroySemaphore (context->device,
+                              swapchain->render_finished_semaphores[i], NULL);
+        }
+      free (swapchain->image_available_semaphores);
+      free (swapchain->render_finished_semaphores);
+      return RESULT_ERROR (RESULT_ERROR_VULKAN, "Failed to create fence");
+    }
 
   return RESULT_SUCCESS;
 }
@@ -153,8 +216,30 @@ swapchain_destroy (vulkan_context_t *context, swapchain_t *swapchain)
   if (!context || !swapchain)
     return;
 
-  vkDestroySemaphore (context->device, swapchain->image_available, NULL);
-  vkDestroySemaphore (context->device, swapchain->render_finished, NULL);
+  if (swapchain->image_available_semaphores)
+    {
+      for (uint32_t i = 0; i < swapchain->image_count; i++)
+        {
+          vkDestroySemaphore (context->device,
+                              swapchain->image_available_semaphores[i], NULL);
+        }
+      free (swapchain->image_available_semaphores);
+    }
+
+  if (swapchain->render_finished_semaphores)
+    {
+      for (uint32_t i = 0; i < swapchain->image_count; i++)
+        {
+          vkDestroySemaphore (context->device,
+                              swapchain->render_finished_semaphores[i], NULL);
+        }
+      free (swapchain->render_finished_semaphores);
+    }
+
+  if (swapchain->command_fence != VK_NULL_HANDLE)
+    {
+      vkDestroyFence (context->device, swapchain->command_fence, NULL);
+    }
 
   for (uint32_t i = 0; i < swapchain->image_count; i++)
     {
@@ -173,17 +258,20 @@ swapchain_present (vulkan_context_t *context, swapchain_t *swapchain,
 {
 
   uint32_t image_index;
+
+  vkQueueWaitIdle (context->graphics_queue);
+
   VkResult result = vkAcquireNextImageKHR (
       context->device, swapchain->swapchain, UINT64_MAX,
-      swapchain->image_available, VK_NULL_HANDLE, &image_index);
+      swapchain->image_available_semaphores[0], VK_NULL_HANDLE, &image_index);
+
+  VkSemaphore image_available_sem = swapchain->image_available_semaphores[0];
 
   if (result != VK_SUCCESS)
     {
       return RESULT_ERROR (RESULT_ERROR_VULKAN,
                            "Failed to acquire swapchain image");
     }
-
-  vkQueueWaitIdle (context->graphics_queue);
 
   VkCommandBuffer cmd = vulkan_begin_single_time_commands (context);
 
@@ -230,15 +318,53 @@ swapchain_present (vulkan_context_t *context, swapchain_t *swapchain,
                         VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0,
                         NULL, 1, &barrier);
 
-  vulkan_end_single_time_commands (context, cmd);
+  vkEndCommandBuffer (cmd);
+
+  vkWaitForFences (context->device, 1, &swapchain->command_fence, VK_TRUE,
+                   UINT64_MAX);
+  vkResetFences (context->device, 1, &swapchain->command_fence);
+
+  VkSubmitInfo submit_info = { 0 };
+  submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+  VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_TRANSFER_BIT };
+  submit_info.waitSemaphoreCount = 1;
+  submit_info.pWaitSemaphores = &image_available_sem;
+  submit_info.pWaitDstStageMask = wait_stages;
+
+  submit_info.commandBufferCount = 1;
+  submit_info.pCommandBuffers = &cmd;
+
+  submit_info.signalSemaphoreCount = 1;
+  submit_info.pSignalSemaphores
+      = &swapchain->render_finished_semaphores[image_index];
+
+  if (vkQueueSubmit (context->graphics_queue, 1, &submit_info,
+                     swapchain->command_fence)
+      != VK_SUCCESS)
+    {
+      vkFreeCommandBuffers (context->device, context->command_pool, 1, &cmd);
+      return RESULT_ERROR (RESULT_ERROR_VULKAN,
+                           "Failed to submit command buffer");
+    }
 
   VkPresentInfoKHR present_info = { 0 };
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+  present_info.waitSemaphoreCount = 1;
+  present_info.pWaitSemaphores
+      = &swapchain->render_finished_semaphores[image_index];
+
   present_info.swapchainCount = 1;
   present_info.pSwapchains = &swapchain->swapchain;
   present_info.pImageIndices = &image_index;
 
   result = vkQueuePresentKHR (context->graphics_queue, &present_info);
+
+  vkWaitForFences (context->device, 1, &swapchain->command_fence, VK_TRUE,
+                   UINT64_MAX);
+  vkFreeCommandBuffers (context->device, context->command_pool, 1, &cmd);
+
   if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
     {
       return RESULT_ERROR (RESULT_ERROR_VULKAN, "Failed to present");
