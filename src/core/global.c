@@ -356,6 +356,11 @@ engine_run (engine_state_t *state)
                                   state->world_manager->active_world,
                                   (float)current_time);
 
+      if (state->world_manager->active_world)
+        {
+          ecs_system_render (state->world_manager->active_world);
+        }
+
       static double last_reload_check = 0;
       if (current_time - last_reload_check > 1.0)
         {

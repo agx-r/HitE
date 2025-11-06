@@ -146,6 +146,15 @@ developer_overlay_component_render (ecs_world_t *world, entity_id_t entity,
   if (!overlay->enabled)
     return RESULT_SUCCESS;
 
+  for (size_t i = 0; i < overlay->text_element_count; i++)
+    {
+      const developer_overlay_text_element_t *element
+          = &overlay->text_elements[i];
+      if (element->active)
+        {
+        }
+    }
+
   return RESULT_SUCCESS;
 }
 
