@@ -31,8 +31,8 @@ swapchain_create (vulkan_context_t *context, GLFWwindow *window,
 {
   memset (swapchain, 0, sizeof (swapchain_t));
 
-  VkSurfaceKHR surface;
-  if (glfwCreateWindowSurface (context->instance, window, NULL, &surface)
+  if (glfwCreateWindowSurface (context->instance, window, NULL,
+                               &swapchain->surface)
       != VK_SUCCESS)
     {
       return RESULT_ERROR (RESULT_ERROR_VULKAN,
@@ -40,16 +40,16 @@ swapchain_create (vulkan_context_t *context, GLFWwindow *window,
     }
 
   VkSurfaceCapabilitiesKHR capabilities;
-  vkGetPhysicalDeviceSurfaceCapabilitiesKHR (context->physical_device, surface,
-                                             &capabilities);
+  vkGetPhysicalDeviceSurfaceCapabilitiesKHR (
+      context->physical_device, swapchain->surface, &capabilities);
 
   uint32_t format_count;
-  vkGetPhysicalDeviceSurfaceFormatsKHR (context->physical_device, surface,
-                                        &format_count, NULL);
+  vkGetPhysicalDeviceSurfaceFormatsKHR (
+      context->physical_device, swapchain->surface, &format_count, NULL);
   VkSurfaceFormatKHR *formats
       = malloc (format_count * sizeof (VkSurfaceFormatKHR));
-  vkGetPhysicalDeviceSurfaceFormatsKHR (context->physical_device, surface,
-                                        &format_count, formats);
+  vkGetPhysicalDeviceSurfaceFormatsKHR (
+      context->physical_device, swapchain->surface, &format_count, formats);
 
   VkSurfaceFormatKHR surface_format = formats[0];
 
@@ -79,7 +79,7 @@ swapchain_create (vulkan_context_t *context, GLFWwindow *window,
 
   VkSwapchainCreateInfoKHR create_info = { 0 };
   create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-  create_info.surface = surface;
+  create_info.surface = swapchain->surface;
   create_info.minImageCount = capabilities.minImageCount + 1;
   if (capabilities.maxImageCount > 0
       && create_info.minImageCount > capabilities.maxImageCount)
@@ -103,7 +103,7 @@ swapchain_create (vulkan_context_t *context, GLFWwindow *window,
                             &swapchain->swapchain)
       != VK_SUCCESS)
     {
-      vkDestroySurfaceKHR (context->instance, surface, NULL);
+      vkDestroySurfaceKHR (context->instance, swapchain->surface, NULL);
       return RESULT_ERROR (RESULT_ERROR_VULKAN, "Failed to create swapchain");
     }
 
@@ -216,6 +216,11 @@ swapchain_destroy (vulkan_context_t *context, swapchain_t *swapchain)
   if (!context || !swapchain)
     return;
 
+  if (context->device)
+    {
+      vkDeviceWaitIdle (context->device);
+    }
+
   if (swapchain->image_available_semaphores)
     {
       for (uint32_t i = 0; i < swapchain->image_count; i++)
@@ -249,7 +254,15 @@ swapchain_destroy (vulkan_context_t *context, swapchain_t *swapchain)
   free (swapchain->images);
   free (swapchain->image_views);
 
-  vkDestroySwapchainKHR (context->device, swapchain->swapchain, NULL);
+  if (swapchain->swapchain != VK_NULL_HANDLE)
+    {
+      vkDestroySwapchainKHR (context->device, swapchain->swapchain, NULL);
+    }
+
+  if (swapchain->surface != VK_NULL_HANDLE && context->instance)
+    {
+      vkDestroySurfaceKHR (context->instance, swapchain->surface, NULL);
+    }
 }
 
 result_t

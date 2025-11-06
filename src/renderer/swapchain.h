@@ -6,6 +6,7 @@
 typedef struct
 {
   VkSwapchainKHR swapchain;
+  VkSurfaceKHR surface;
   VkImage *images;
   VkImageView *image_views;
   VkFramebuffer *framebuffers;
