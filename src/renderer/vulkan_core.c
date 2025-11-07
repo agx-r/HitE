@@ -1,6 +1,5 @@
 #include "vulkan_core.h"
 #include "../core/logger.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -106,6 +105,11 @@ vulkan_init (vulkan_context_t *context, bool enable_validation)
 
   VkPhysicalDevice *devices
       = malloc (device_count * sizeof (VkPhysicalDevice));
+  if (devices == NULL)
+    {
+      LOG_ERROR("Vulkan", "malloc (); for devices failed!");
+      exit (1);
+    }
   vkEnumeratePhysicalDevices (context->instance, &device_count, devices);
   context->physical_device = devices[0];
   free (devices);
@@ -124,6 +128,13 @@ vulkan_init (vulkan_context_t *context, bool enable_validation)
 
   VkQueueFamilyProperties *queue_families
       = malloc (queue_family_count * sizeof (VkQueueFamilyProperties));
+
+  if (queue_families == NULL)
+    {
+      LOG_ERROR("Vulkan", "malloc (); for device families failed!");
+      exit(1);
+    }
+    
   vkGetPhysicalDeviceQueueFamilyProperties (
       context->physical_device, &queue_family_count, queue_families);
 

@@ -57,7 +57,7 @@ target_link_libraries(hite PRIVATE
     dl
 )
 
-# Shader compilation
+# Shader srcs compilation
 file(GLOB_RECURSE SHADER_SOURCES
     "${CMAKE_SOURCE_DIR}/shaders/*.comp"
     "${CMAKE_SOURCE_DIR}/shaders/*.vert"
@@ -85,14 +85,14 @@ endforeach()
 add_custom_target(shaders ALL DEPENDS ${SHADER_OUTPUTS})
 add_dependencies(hite shaders)
 
-# Copy prefabs to build directory (Scheme)
+# Copy prefabs to build dir (Scheme)
 file(GLOB PREFAB_FILES "${CMAKE_SOURCE_DIR}/prefabs/*.scm")
 foreach(PREFAB_FILE ${PREFAB_FILES})
     get_filename_component(PREFAB_NAME ${PREFAB_FILE} NAME)
     configure_file(${PREFAB_FILE} ${CMAKE_BINARY_DIR}/prefabs/${PREFAB_NAME} COPYONLY)
 endforeach()
 
-# Copy worlds to build directory (Scheme)
+# Copy worlds to build dir (Scheme)
 file(GLOB WORLD_FILES "${CMAKE_SOURCE_DIR}/worlds/*.scm")
 foreach(WORLD_FILE ${WORLD_FILES})
     get_filename_component(WORLD_NAME ${WORLD_FILE} NAME)
