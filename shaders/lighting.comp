@@ -17,7 +17,11 @@ const float NOISE_SHADOW_MIN_BLEND = 0.1;
 const float NOISE_SHADOW_MAX_BLEND = 1.0;
 const float NOISE_SCALE = 10.0;
 
-const float WHITE_SURFACE_LUMINANCE = 0.7;
+const float NEAR_LIGHT_DISTANCE = 16.0;
+const float NEAR_LIGHT_STRENGTH = 0.15;
+const float NEAR_LIGHT_POWER = 1.5;
+
+const float WHITE_SURFACE_LUMINANCE = 1.0;
 const float WHITE_SURFACE_DEPTH_MAX = 20.0;
 const float WHITE_SURFACE_DEPTH_REDUCE = 0.15;
 
@@ -221,6 +225,11 @@ main ()
       final_color = mix (lit_color, lighting_ubo.background_color.rgb,
                          shadow_blend * SHADOW_SOFT_BLEND);
       final_color = min (final_color, vec3 (1.0));
+
+      float near_factor = 1.0 - clamp (depth / NEAR_LIGHT_DISTANCE, 0.0, 1.0);
+      near_factor = pow (near_factor, NEAR_LIGHT_POWER);
+      vec3 near_light = surface_color * near_factor * NEAR_LIGHT_STRENGTH;
+      final_color += near_light;
 
       float luminance = dot (final_color, LUMINANCE_WEIGHTS);
       bool is_white_surface = luminance > WHITE_SURFACE_LUMINANCE;

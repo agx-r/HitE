@@ -266,7 +266,7 @@ render_system_render_frame (render_system_t *system, ecs_world_t *world,
     }
   else
     {
-      uniforms.background_color = (vec4_t){ 0.06f, 0.06f, 0.06f, 0 };
+      uniforms.background_color = (vec4_t){ 0.01f, 0.01f, 0.01f, 0 };
     }
 
   uniforms.time = time;

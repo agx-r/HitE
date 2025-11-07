@@ -8,6 +8,7 @@
     (up 0 1 0)
     (fov 190.0)
     (near-plane 2)
+    (background-color 0.009 0.009 0.011)
     (far-plane 1000.0)
     (active #t))
   
