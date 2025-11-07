@@ -14,8 +14,8 @@ const float FADE_END_FACTOR = 1.0;
 const float NOISE_MAX_DISTANCE = 15.0;
 const float NOISE_MAX_STRENGTH = 0.05;
 const float NOISE_SHADOW_MIN_BLEND = 0.1;
-const float NOISE_SHADOW_MAX_BLEND = 0.9;
-const float NOISE_SCALE = 16.0;
+const float NOISE_SHADOW_MAX_BLEND = 1.0;
+const float NOISE_SCALE = 10.0;
 
 const float WHITE_SURFACE_LUMINANCE = 0.7;
 const float WHITE_SURFACE_DEPTH_MAX = 20.0;
