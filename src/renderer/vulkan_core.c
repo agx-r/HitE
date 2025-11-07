@@ -107,7 +107,7 @@ vulkan_init (vulkan_context_t *context, bool enable_validation)
       = malloc (device_count * sizeof (VkPhysicalDevice));
   if (devices == NULL)
     {
-      LOG_ERROR("Vulkan", "malloc (); for devices failed!");
+      LOG_ERROR ("Vulkan", "malloc (); for devices failed!");
       exit (1);
     }
   vkEnumeratePhysicalDevices (context->instance, &device_count, devices);
@@ -131,10 +131,10 @@ vulkan_init (vulkan_context_t *context, bool enable_validation)
 
   if (queue_families == NULL)
     {
-      LOG_ERROR("Vulkan", "malloc (); for device families failed!");
-      exit(1);
+      LOG_ERROR ("Vulkan", "malloc (); for device families failed!");
+      exit (1);
     }
-    
+
   vkGetPhysicalDeviceQueueFamilyProperties (
       context->physical_device, &queue_family_count, queue_families);
 

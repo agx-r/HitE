@@ -54,7 +54,6 @@ camera_movement_component_update (ecs_world_t *world, entity_id_t entity,
   vec3_t right;
 
   right.x = -forward.z;
-  right.y = 0;
   right.z = forward.x;
 
   float len = sqrtf (right.x * right.x + right.z * right.z);
