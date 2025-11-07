@@ -48,6 +48,12 @@ vulkan_init (vulkan_context_t *context, bool enable_validation)
 
   const char **extensions
       = malloc ((glfw_extension_count + 1) * sizeof (char *));
+  if (extensions == NULL)
+    {
+      LOG_ERROR ("Vulkan", "malloc (); for devices failed!");
+      exit (1);
+    }
+
   for (uint32_t i = 0; i < glfw_extension_count; i++)
     {
       extensions[i] = glfw_extensions[i];
@@ -128,7 +134,6 @@ vulkan_init (vulkan_context_t *context, bool enable_validation)
 
   VkQueueFamilyProperties *queue_families
       = malloc (queue_family_count * sizeof (VkQueueFamilyProperties));
-
   if (queue_families == NULL)
     {
       LOG_ERROR ("Vulkan", "malloc (); for device families failed!");
