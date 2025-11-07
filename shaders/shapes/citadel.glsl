@@ -6,7 +6,7 @@ vec3 orbitColor;
 float
 citadel_de (vec3 p)
 {
-  float scale = 1.4731;
+  float scale = 1.4741;
   float angle1 = 0.0;
   float angle2 = 0.0;
   vec3 shift = vec3 (-10.27, 3.28, -1.90);
@@ -37,7 +37,7 @@ citadel_de (vec3 p)
 float
 shape_citadel_eval (vec3 p, float seed)
 {
-  return 88 * citadel_de (p / 88);
+  return 120 * citadel_de (p / 120);
 }
 
 #endif

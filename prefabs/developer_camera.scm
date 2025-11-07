@@ -13,7 +13,7 @@
     (active #t))
   
   (component "camera_movement"
-    (move-speed 10.0)
+    (move-speed 5.0)
     (enabled #t))
 
   (component "developer_overlay")
