@@ -3,7 +3,7 @@
   (description "Camera entity with movement, logger and rotation components")
   
   (component "camera"
-    (position 0 3 0)
+    (position 0 0 0)
     (direction 0 -0.3 1)
     (up 0 1 0)
     (fov 190.0)
@@ -31,7 +31,7 @@
     (sun-color 1.0 0.1 0.8)
     (ambient-strength 0.6)
     (diffuse-strength 0.25)
-    (shadow-bias 0.05)
-    (shadow-softness 0.5)
+    (shadow-bias 0.1)
+    (shadow-softness 1)
     (shadow-steps 48)
     (enabled #t)))

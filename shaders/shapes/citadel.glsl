@@ -37,7 +37,7 @@ citadel_de (vec3 p)
 float
 shape_citadel_eval (vec3 p, float seed)
 {
-  return 100 * citadel_de (p / 100);
+  return 88 * citadel_de (p / 88);
 }
 
 #endif
