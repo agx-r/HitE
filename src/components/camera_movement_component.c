@@ -51,29 +51,28 @@ camera_movement_component_update (ecs_world_t *world, entity_id_t entity,
   float speed = movement->move_speed * time->delta_time;
 
   vec3_t forward = camera->direction;
-  vec3_t right;
 
-  right.x = -forward.z;
-  right.z = forward.x;
+  vec3_t flat = { forward.x, 0, forward.z };
 
-  float len = sqrtf (right.x * right.x + right.z * right.z);
+  float len = sqrtf (flat.x * flat.x + flat.z * flat.z);
+
   if (len > 0.0001f)
     {
-      right.x /= len;
-      right.z /= len;
+      flat.x /= len;
+      flat.z /= len;
     }
+
+  vec3_t right = { .x = -flat.z, .y = 0.0f, .z = flat.x };
 
   if (input_handler_get_key_state (input_handler, GLFW_KEY_W))
     {
-      camera->position.x += forward.x * speed;
-
-      camera->position.z += forward.z * speed;
+      camera->position.x += flat.x * speed;
+      camera->position.z += flat.z * speed;
     }
   if (input_handler_get_key_state (input_handler, GLFW_KEY_S))
     {
-      camera->position.x -= forward.x * speed;
-
-      camera->position.z -= forward.z * speed;
+      camera->position.x -= flat.x * speed;
+      camera->position.z -= flat.z * speed;
     }
   if (input_handler_get_key_state (input_handler, GLFW_KEY_A))
     {

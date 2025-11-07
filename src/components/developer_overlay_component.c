@@ -10,8 +10,6 @@ result_t
 developer_overlay_component_start (ecs_world_t *world, entity_id_t entity,
                                    void *component_data)
 {
-  (void)entity;
-
   developer_overlay_component_t *overlay
       = (developer_overlay_component_t *)component_data;
 

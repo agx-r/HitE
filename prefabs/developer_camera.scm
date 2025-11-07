@@ -6,8 +6,8 @@
     (position 0 3 0)
     (direction 0 -0.3 1)
     (up 0 1 0)
-    (fov 90.0)
-    (near-plane 0.1)
+    (fov 190.0)
+    (near-plane 2)
     (far-plane 1000.0)
     (active #t))
   
@@ -27,11 +27,11 @@
     (enabled #t))
   
   (component "lighting"
-    (sun-direction 0.3 0.8 0.5)
-    (sun-color 1.0 0.95 0.8)
-    (ambient-strength 0.15)
-    (diffuse-strength 0.85)
+    (sun-direction 0.7 0.7 0.5)
+    (sun-color 1.0 0.1 0.8)
+    (ambient-strength 0.6)
+    (diffuse-strength 0.25)
     (shadow-bias 0.05)
-    (shadow-softness 0.3)
+    (shadow-softness 0.5)
     (shadow-steps 48)
     (enabled #t)))
