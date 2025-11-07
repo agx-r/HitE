@@ -59,18 +59,6 @@ prefab_system_destroy (prefab_system_t *system)
     }
 }
 
-prefab_t *
-prefab_create (const char *name)
-{
-  prefab_t *prefab = calloc (1, sizeof (prefab_t));
-  if (!prefab)
-    return NULL;
-
-  prefab->name = strdup (name);
-  prefab->component_count = 0;
-  return prefab;
-}
-
 result_t
 prefab_add_component (prefab_t *prefab, const char *component_name,
                       const void *data, size_t data_size)
@@ -384,62 +372,6 @@ prefab_load (prefab_system_t *system, const char *filepath,
   LOG_INFO ("Prefab", "Loaded '%s' from %s (TinyScheme, %zu components)",
             prefab->name ? prefab->name : "Unnamed", filepath,
             prefab->component_count);
-
-  return RESULT_SUCCESS;
-}
-
-result_t
-prefab_load_directory (prefab_system_t *system, const char *directory_path)
-{
-  if (!system || !directory_path)
-    {
-      return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
-                           "Invalid arguments");
-    }
-
-  DIR *dir = opendir (directory_path);
-  if (!dir)
-    {
-      char err[256];
-      snprintf (err, sizeof (err), "Failed to open directory: %s",
-                directory_path);
-      return RESULT_ERROR (RESULT_ERROR_FILE_NOT_FOUND, err);
-    }
-
-  struct dirent *entry;
-  size_t loaded_count = 0;
-
-  while ((entry = readdir (dir)) != NULL)
-    {
-
-      if (strcmp (entry->d_name, ".") == 0
-          || strcmp (entry->d_name, "..") == 0)
-        continue;
-
-      size_t name_len = strlen (entry->d_name);
-      if (name_len < 4 || strcmp (entry->d_name + name_len - 4, ".scm") != 0)
-        continue;
-
-      char filepath[512];
-      snprintf (filepath, sizeof (filepath), "%s/%s", directory_path,
-                entry->d_name);
-
-      result_t result = prefab_load (system, filepath, NULL);
-      if (result.code == RESULT_OK)
-        {
-          loaded_count++;
-        }
-      else
-        {
-          LOG_WARNING ("Prefab", "Failed to load %s: %s\n", filepath,
-                       result.message);
-        }
-    }
-
-  closedir (dir);
-
-  LOG_INFO ("Prefab", "Loaded %zu prefabs from %s", loaded_count,
-            directory_path);
 
   return RESULT_SUCCESS;
 }

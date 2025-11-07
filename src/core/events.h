@@ -92,19 +92,6 @@ listener_id_t event_listen_entity (event_system_t *system, event_type_t type,
 void event_unlisten (event_system_t *system, listener_id_t listener_id);
 
 static inline event_t
-event_collision_create (entity_id_t entity, entity_id_t other, vec3_t point,
-                        vec3_t normal)
-{
-  event_t event = { 0 };
-  event.type = EVENT_COLLISION;
-  event.entity = entity;
-  event.data.collision.other_entity = other;
-  event.data.collision.point = point;
-  event.data.collision.normal = normal;
-  return event;
-}
-
-static inline event_t
 event_key_create (event_type_t type, int key, int mods)
 {
   event_t event = { 0 };

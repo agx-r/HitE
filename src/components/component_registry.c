@@ -45,14 +45,3 @@ register_component_helper (ecs_world_t *world, const char *name,
                  name, result.message);
     }
 }
-
-void
-register_all_components (ecs_world_t *world)
-{
-  camera_component_register (world);
-  camera_movement_component_register (world);
-  camera_rotation_component_register (world);
-  lighting_component_register (world);
-  shape_component_register (world);
-  developer_overlay_component_register (world);
-}

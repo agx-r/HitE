@@ -5,29 +5,7 @@
 #include "component_registry.h"
 
 #include <math.h>
-#include <stdio.h>
 #include <string.h>
-
-camera_rotation_component_t
-camera_rotation_create_default (float yaw, float pitch)
-{
-  camera_rotation_component_t rotation = { 0 };
-
-  rotation.yaw = yaw;
-  rotation.pitch = pitch;
-
-  rotation.look_sensitivity = 0.003f;
-  rotation.first_mouse = true;
-
-  rotation.max_pitch = 1.5f;
-  rotation.min_pitch = -1.5f;
-
-  rotation.mouse_captured = true;
-  rotation.enabled = true;
-  rotation.mouse_move_listener = 0;
-
-  return rotation;
-}
 
 static void
 mouse_event_callback (const event_t *event, void *user_data)

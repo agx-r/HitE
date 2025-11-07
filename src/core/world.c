@@ -216,14 +216,6 @@ world_instantiate_templates (ecs_world_t *world,
 }
 
 result_t
-world_switch (world_manager_t *manager, const world_definition_t *definition,
-              prefab_system_t *prefab_system)
-{
-
-  return world_load (manager, definition, prefab_system);
-}
-
-result_t
 world_update (world_manager_t *manager, float delta_time)
 {
   if (!manager || !manager->active_world)

@@ -6,19 +6,7 @@
 
 #include <GLFW/glfw3.h>
 #include <math.h>
-#include <stdio.h>
 #include <string.h>
-
-camera_movement_component_t
-camera_movement_create_default (void)
-{
-  camera_movement_component_t movement = { 0 };
-
-  movement.move_speed = 5.0f;
-  movement.enabled = true;
-
-  return movement;
-}
 
 result_t
 camera_movement_component_start (ecs_world_t *world, entity_id_t entity,

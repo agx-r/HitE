@@ -361,30 +361,3 @@ render_system_set_camera (render_system_t *system, vec3_t position,
   system->camera_position = position;
   system->camera_direction = direction;
 }
-
-void
-render_system_move_camera (render_system_t *system, vec3_t delta)
-{
-  if (!system)
-    return;
-
-  system->camera_position.x += delta.x;
-  system->camera_position.y += delta.y;
-  system->camera_position.z += delta.z;
-}
-
-void
-render_system_rotate_camera (render_system_t *system, float yaw, float pitch)
-{
-  if (!system)
-    return;
-
-  float cos_yaw = cosf (yaw);
-  float sin_yaw = sinf (yaw);
-  float cos_pitch = cosf (pitch);
-  float sin_pitch = sinf (pitch);
-
-  system->camera_direction.x = cos_pitch * sin_yaw;
-  system->camera_direction.y = sin_pitch;
-  system->camera_direction.z = cos_pitch * cos_yaw;
-}

@@ -2,20 +2,14 @@
 #include "../components/camera_component.h"
 #include "../components/camera_movement_component.h"
 #include "../components/camera_rotation_component.h"
-#include "../components/component_registry.h"
 #include "../components/developer_overlay_component.h"
 #include "../components/lighting_component.h"
 #include "../components/shape_component.h"
-#include "component_parsers.h"
-#include "input_handler.h"
 #include "logger.h"
 #include "prefab.h"
-#include "scheme_parser.h"
 #include "world_loader.h"
 
 #include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #define DEFAULT_WINDOW_WIDTH 1280
@@ -34,109 +28,6 @@ engine_config_default (void)
   config.prefabs_directory = "prefabs";
   config.worlds_directory = "worlds";
   return config;
-}
-
-void
-glfw_key_callback (GLFWwindow *window, int key, int scancode, int action,
-                   int mods)
-{
-  (void)scancode;
-  (void)mods;
-
-  engine_state_t *state = (engine_state_t *)glfwGetWindowUserPointer (window);
-
-  if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-    {
-      state->running = false;
-    }
-}
-
-void
-glfw_mouse_callback (GLFWwindow *window, double xpos, double ypos)
-{
-  engine_state_t *state = (engine_state_t *)glfwGetWindowUserPointer (window);
-
-  if (state->first_mouse)
-    {
-      state->last_mouse_x = xpos;
-      state->last_mouse_y = ypos;
-      state->first_mouse = false;
-    }
-
-  double xoffset = xpos - state->last_mouse_x;
-  double yoffset = ypos - state->last_mouse_y;
-  state->last_mouse_x = xpos;
-  state->last_mouse_y = ypos;
-
-  float sensitivity = 0.003f;
-  xoffset *= sensitivity;
-  yoffset *= sensitivity;
-
-  state->camera_yaw -= xoffset;
-  state->camera_pitch -= yoffset;
-
-  if (state->camera_pitch > 1.5f)
-    state->camera_pitch = 1.5f;
-  if (state->camera_pitch < -1.5f)
-    state->camera_pitch = -1.5f;
-
-  render_system_rotate_camera (&state->render_system, state->camera_yaw,
-                               state->camera_pitch);
-}
-
-void
-process_camera_movement (engine_state_t *state, float delta_time)
-{
-  float camera_speed = 5.0f * delta_time;
-
-  vec3_t forward = state->render_system.camera_direction;
-  vec3_t right;
-
-  right.x = -forward.z;
-  right.y = 0;
-  right.z = forward.x;
-
-  float len = sqrtf (right.x * right.x + right.z * right.z);
-  if (len > 0.0001f)
-    {
-      right.x /= len;
-      right.z /= len;
-    }
-
-  vec3_t movement = { 0, 0, 0, 0 };
-
-  if (state->keys[GLFW_KEY_W])
-    {
-      movement.x += forward.x * camera_speed;
-      movement.y += forward.y * camera_speed;
-      movement.z += forward.z * camera_speed;
-    }
-  if (state->keys[GLFW_KEY_S])
-    {
-      movement.x -= forward.x * camera_speed;
-      movement.y -= forward.y * camera_speed;
-      movement.z -= forward.z * camera_speed;
-    }
-  if (state->keys[GLFW_KEY_A])
-    {
-      movement.x -= right.x * camera_speed;
-      movement.z -= right.z * camera_speed;
-    }
-  if (state->keys[GLFW_KEY_D])
-    {
-      movement.x += right.x * camera_speed;
-      movement.z += right.z * camera_speed;
-    }
-  if (state->keys[GLFW_KEY_SPACE])
-    {
-      movement.y += camera_speed;
-    }
-  if (state->keys[GLFW_KEY_LEFT_SHIFT])
-    {
-      movement.y -= camera_speed;
-    }
-
-  render_system_move_camera (&state->render_system, movement);
 }
 
 result_t
@@ -181,14 +72,6 @@ engine_init (engine_state_t *state, const engine_config_t *config)
 
   state->world_manager = world_manager_create ();
   state->event_system = event_system_create ();
-  state->resource_manager = resource_manager_create ();
-
-  if (!state->world_manager || !state->event_system
-      || !state->resource_manager)
-    {
-      return RESULT_ERROR (RESULT_ERROR_ALLOCATION,
-                           "Failed to create subsystems");
-    }
 
   result = render_system_init (&state->render_system, &state->vk_context,
                                state->window, state->window_width,
@@ -215,7 +98,6 @@ engine_cleanup (engine_state_t *state)
   render_system_cleanup (&state->render_system);
   world_manager_destroy (state->world_manager);
   event_system_destroy (state->event_system);
-  resource_manager_destroy (state->resource_manager);
   vulkan_cleanup (&state->vk_context);
 
   if (state->window)
@@ -349,13 +231,6 @@ engine_run (engine_state_t *state)
       if (state->world_manager->active_world)
         {
           ecs_system_render (state->world_manager->active_world);
-        }
-
-      static double last_reload_check = 0;
-      if (current_time - last_reload_check > 1.0)
-        {
-          resource_check_reload (state->resource_manager);
-          last_reload_check = current_time;
         }
     }
 }

@@ -229,12 +229,3 @@ developer_overlay_update_text (developer_overlay_component_t *overlay,
 
   return RESULT_SUCCESS;
 }
-
-void
-developer_overlay_clear_text (developer_overlay_component_t *overlay)
-{
-  if (!overlay)
-    return;
-
-  overlay->text_element_count = 0;
-}

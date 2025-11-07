@@ -1,5 +1,4 @@
 #include "ecs.h"
-#include "events.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -168,20 +167,6 @@ ecs_entity_create (ecs_world_t *world)
 
   world->entity_versions[id]++;
   return id;
-}
-
-void
-ecs_entity_destroy (ecs_world_t *world, entity_id_t entity)
-{
-  if (!world || !ecs_entity_is_valid (world, entity))
-    return;
-
-  for (size_t i = 0; i < world->component_count; i++)
-    {
-      ecs_remove_component (world, entity, i);
-    }
-
-  world->free_entities[world->free_entity_count++] = entity;
 }
 
 bool
@@ -441,25 +426,6 @@ ecs_system_render (ecs_world_t *world)
     }
 
   return RESULT_SUCCESS;
-}
-
-void
-ecs_iterate_components (ecs_world_t *world, component_id_t component_id,
-                        ecs_iterate_fn callback, void *user_data)
-{
-  if (!world || component_id >= world->component_count || !callback)
-    return;
-
-  component_array_t *array = &world->component_arrays[component_id];
-
-  for (size_t i = 0; i < array->count; i++)
-    {
-      if (!array->active[i])
-        continue;
-
-      void *data = (char *)array->data + i * array->descriptor.data_size;
-      callback (world, array->entities[i], data, user_data);
-    }
 }
 
 void

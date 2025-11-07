@@ -15,7 +15,7 @@ typedef enum
   SHAPE_CONE = 6,
   SHAPE_TERRAIN = 7,
   SHAPE_CITADEL = 8,
-  SHAPE_CUSTOM = 100,
+  SHAPE_CUSTOM = 256,
 } shape_type_t;
 
 typedef enum

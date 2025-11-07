@@ -98,34 +98,6 @@ hite_scheme_load_file (scheme_state_t *state, const char *filepath,
   return RESULT_SUCCESS;
 }
 
-result_t
-hite_scheme_eval_string (scheme_state_t *state, const char *source,
-                         pointer *out_result)
-{
-  if (!state || !state->sc || !source)
-    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
-
-  scheme_load_string (state->sc, source);
-  pointer result = state->sc->value;
-
-  if (out_result)
-    *out_result = result;
-
-  return RESULT_SUCCESS;
-}
-
-bool
-scheme_is_list_wrapper (scheme_state_t *state, pointer obj)
-{
-  if (!state || !obj)
-    return false;
-
-  if (obj == state->sc->NIL)
-    return true;
-
-  return is_pair (obj);
-}
-
 bool
 scheme_is_pair_wrapper (scheme_state_t *state, pointer obj)
 {
@@ -161,15 +133,6 @@ scheme_is_boolean_wrapper (scheme_state_t *state, pointer obj)
     return false;
 
   return (obj == state->sc->T || obj == state->sc->F);
-}
-
-bool
-scheme_is_null_wrapper (scheme_state_t *state, pointer obj)
-{
-  if (!state || !obj)
-    return false;
-
-  return (obj == state->sc->NIL);
 }
 
 const char *
@@ -226,13 +189,7 @@ scheme_cadr_wrapper (scheme_state_t *state, pointer obj)
   return pair_car (pair_cdr (obj));
 }
 
-int
-scheme_list_length_wrapper (scheme_state_t *state, pointer obj)
-{
-  return list_length (state->sc, obj);
-}
-
-pointer
+static pointer
 scheme_list_ref_wrapper (scheme_state_t *state, pointer obj, int index)
 {
   pointer current = obj;
@@ -245,36 +202,6 @@ scheme_list_ref_wrapper (scheme_state_t *state, pointer obj, int index)
     return pair_car (current);
 
   return state->sc->NIL;
-}
-
-pointer
-scheme_find_field (scheme_state_t *state, pointer list, const char *field_name)
-{
-  if (!state || !list || !field_name)
-    return NULL;
-
-  pointer current = list;
-  while (is_pair (current))
-    {
-      pointer elem = pair_car (current);
-
-      if (is_pair (elem))
-        {
-          pointer name = pair_car (elem);
-          if (is_symbol (name))
-            {
-              const char *sym_name = symname (name);
-              if (strcmp (sym_name, field_name) == 0)
-                {
-                  return elem;
-                }
-            }
-        }
-
-      current = pair_cdr (current);
-    }
-
-  return NULL;
 }
 
 result_t
@@ -352,19 +279,5 @@ scheme_parse_float (scheme_state_t *state, pointer obj, float *out)
                          "Expected number for float");
 
   *out = (float)scheme_number_wrapper (state, obj);
-  return RESULT_SUCCESS;
-}
-
-result_t
-scheme_parse_bool (scheme_state_t *state, pointer obj, bool *out)
-{
-  if (!state || !obj || !out)
-    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
-
-  if (!scheme_is_boolean_wrapper (state, obj))
-    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
-                         "Expected boolean for bool");
-
-  *out = scheme_boolean_wrapper (state, obj);
   return RESULT_SUCCESS;
 }

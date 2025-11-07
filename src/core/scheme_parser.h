@@ -40,8 +40,8 @@ pointer scheme_car_wrapper (scheme_state_t *state, pointer obj);
 pointer scheme_cdr_wrapper (scheme_state_t *state, pointer obj);
 pointer scheme_cadr_wrapper (scheme_state_t *state, pointer obj);
 int scheme_list_length_wrapper (scheme_state_t *state, pointer obj);
-pointer scheme_list_ref_wrapper (scheme_state_t *state, pointer obj,
-                                 int index);
+static pointer scheme_list_ref_wrapper (scheme_state_t *state, pointer obj,
+                                        int index);
 
 pointer scheme_find_field (scheme_state_t *state, pointer list,
                            const char *field_name);

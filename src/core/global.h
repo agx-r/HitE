@@ -5,7 +5,6 @@
 #include "../renderer/vulkan_core.h"
 #include "events.h"
 #include "input_handler.h"
-#include "resources.h"
 #include "types.h"
 #include "world.h"
 
@@ -20,7 +19,6 @@ typedef struct
   render_system_t render_system;
   world_manager_t *world_manager;
   event_system_t *event_system;
-  resource_manager_t *resource_manager;
   input_handler_t input_handler;
 
   bool running;

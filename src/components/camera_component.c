@@ -5,29 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 
-camera_component_t
-camera_create_default (vec3_t position, vec3_t direction)
-{
-  camera_component_t camera = { 0 };
-
-  camera.position = position;
-  camera.direction = direction;
-
-  camera.up.x = 0;
-  camera.up.y = 1;
-  camera.up.z = 0;
-
-  camera.fov = 70.0f;
-  camera.near_plane = 0.1f;
-  camera.far_plane = 1000.0f;
-
-  camera.background_color = (vec3_t){ 0.06f, 0.06f, 0.06f, 0.0f };
-
-  camera.is_active = true;
-
-  return camera;
-}
-
 camera_component_t *
 camera_find_active (ecs_world_t *world, entity_id_t *out_entity)
 {

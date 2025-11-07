@@ -34,30 +34,6 @@ event_system_destroy (event_system_t *system)
 }
 
 result_t
-event_emit (event_system_t *system, const event_t *event)
-{
-  if (!system || !event)
-    {
-      return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
-                           "Invalid parameters");
-    }
-
-  if (system->queue_count >= EVENT_QUEUE_SIZE)
-    {
-      return RESULT_ERROR (RESULT_ERROR_ALLOCATION, "Event queue full");
-    }
-
-  system->queue[system->queue_tail] = *event;
-  system->queue[system->queue_tail].timestamp
-      = (double)clock () / CLOCKS_PER_SEC;
-
-  system->queue_tail = (system->queue_tail + 1) % EVENT_QUEUE_SIZE;
-  system->queue_count++;
-
-  return RESULT_SUCCESS;
-}
-
-result_t
 event_broadcast (event_system_t *system, const event_t *event)
 {
   if (!system || !event)

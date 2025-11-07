@@ -1,7 +1,5 @@
 #include "logger.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -101,31 +99,6 @@ log_level_t
 logger_get_level (void)
 {
   return g_log_level;
-}
-
-void
-logger_set_target (log_target_t target)
-{
-  g_log_target = target;
-}
-
-void
-logger_set_file (const char *filepath)
-{
-  if (g_log_file)
-    {
-      fclose (g_log_file);
-      g_log_file = NULL;
-    }
-
-  if (filepath)
-    {
-      g_log_file = fopen (filepath, "a");
-      if (g_log_file)
-        {
-          g_log_target = LOG_TARGET_FILE;
-        }
-    }
 }
 
 void

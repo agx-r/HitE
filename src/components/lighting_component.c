@@ -1,9 +1,7 @@
 #include "lighting_component.h"
-#include "camera_component.h"
 #include "component_registry.h"
 
 #include <math.h>
-#include <stdio.h>
 #include <string.h>
 
 lighting_component_t

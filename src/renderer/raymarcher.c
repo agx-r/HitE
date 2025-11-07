@@ -380,13 +380,6 @@ raymarcher_load_shader (raymarcher_t *raymarcher, const char *shader_path)
 }
 
 result_t
-raymarcher_update_from_ecs (raymarcher_t *raymarcher, ecs_world_t *world)
-{
-
-  return RESULT_SUCCESS;
-}
-
-result_t
 raymarcher_execute (raymarcher_t *raymarcher,
                     const raymarch_uniforms_t *uniforms)
 {
@@ -440,12 +433,6 @@ const gpu_image_t *
 raymarcher_get_color_depth (const raymarcher_t *raymarcher)
 {
   return &raymarcher->output_color_depth;
-}
-
-const gpu_image_t *
-raymarcher_get_normal (const raymarcher_t *raymarcher)
-{
-  return &raymarcher->output_normal;
 }
 
 const gpu_image_t *

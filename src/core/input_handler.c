@@ -63,16 +63,6 @@ input_handler_init (input_handler_t *handler, event_system_t *event_system,
   return RESULT_SUCCESS;
 }
 
-void
-input_handler_cleanup (input_handler_t *handler)
-{
-  if (!handler || !handler->window)
-    return;
-
-  glfwSetKeyCallback (handler->window, NULL);
-  glfwSetCursorPosCallback (handler->window, NULL);
-}
-
 bool
 input_handler_get_key_state (const input_handler_t *handler, int key)
 {
