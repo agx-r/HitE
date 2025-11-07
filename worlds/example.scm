@@ -19,4 +19,4 @@
   
   (entity (prefab "developer_camera")
           (component "camera"
-                     (position 79 532 760))))
+                     (position 266 529 761))))

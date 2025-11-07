@@ -17,7 +17,7 @@ citadel_de (vec3 p)
   mat2 rmX = mat2 (a2.y, a2.x, -a2.x, a2.y);
   float s = 1.0;
   orbitColor = vec3 (0.0);
-  for (int i = 0; i < 11; ++i)
+  for (int i = 0; i < 15; ++i)
     {
       p = abs (p);
       p.xy *= rmZ;

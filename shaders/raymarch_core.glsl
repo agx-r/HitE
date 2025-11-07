@@ -1,10 +1,11 @@
 #ifndef RAYMARCH_CORE_GLSL
 #define RAYMARCH_CORE_GLSL
 
+#include "common/scene_constants.glsl"
 #include "shapes/registry.glsl"
 
-const int MAX_STEPS = 128;
-const float MAX_DIST = 100.0;
+const int MAX_STEPS = SCENE_MAX_STEPS;
+const float MAX_DIST = SCENE_MAX_DISTANCE;
 const float EPSILON = 0.001;
 
 float
