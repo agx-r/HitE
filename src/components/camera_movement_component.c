@@ -17,7 +17,6 @@ camera_movement_component_start (ecs_world_t *world, entity_id_t entity,
   (void)component_data;
 
   LOG_INFO ("Camera Movement", "Component started for entity %u", entity);
-
   return RESULT_SUCCESS;
 }
 
@@ -35,9 +34,7 @@ camera_movement_component_update (ecs_world_t *world, entity_id_t entity,
   input_handler_t *input_handler
       = (input_handler_t *)ecs_world_get_input_handler (world);
   if (!input_handler)
-    {
-      return RESULT_SUCCESS;
-    }
+    return RESULT_SUCCESS;
 
   component_id_t camera_id = ecs_get_component_id (world, "camera");
   if (camera_id == INVALID_ENTITY)
@@ -51,47 +48,58 @@ camera_movement_component_update (ecs_world_t *world, entity_id_t entity,
   float speed = movement->move_speed * time->delta_time;
 
   vec3_t forward = camera->direction;
-
-  vec3_t flat = { forward.x, 0, forward.z };
+  vec3_t flat = { forward.x, 0.0f, forward.z };
 
   float len = sqrtf (flat.x * flat.x + flat.z * flat.z);
-
   if (len > 0.0001f)
     {
       flat.x /= len;
       flat.z /= len;
     }
 
-  vec3_t right = { .x = -flat.z, .y = 0.0f, .z = flat.x };
+  vec3_t right = { -flat.z, 0.0f, flat.x };
+  vec3_t move = { 0.0f, 0.0f, 0.0f };
 
   if (input_handler_get_key_state (input_handler, GLFW_KEY_W))
     {
-      camera->position.x += flat.x * speed;
-      camera->position.z += flat.z * speed;
+      move.x += flat.x;
+      move.z += flat.z;
     }
   if (input_handler_get_key_state (input_handler, GLFW_KEY_S))
     {
-      camera->position.x -= flat.x * speed;
-      camera->position.z -= flat.z * speed;
+      move.x -= flat.x;
+      move.z -= flat.z;
     }
   if (input_handler_get_key_state (input_handler, GLFW_KEY_A))
     {
-      camera->position.x -= right.x * speed;
-      camera->position.z -= right.z * speed;
+      move.x -= right.x;
+      move.z -= right.z;
     }
   if (input_handler_get_key_state (input_handler, GLFW_KEY_D))
     {
-      camera->position.x += right.x * speed;
-      camera->position.z += right.z * speed;
+      move.x += right.x;
+      move.z += right.z;
     }
   if (input_handler_get_key_state (input_handler, GLFW_KEY_SPACE))
     {
-      camera->position.y += speed;
+      move.y += 1.0f;
     }
   if (input_handler_get_key_state (input_handler, GLFW_KEY_LEFT_SHIFT))
     {
-      camera->position.y -= speed;
+      move.y -= 1.0f;
     }
+
+  float move_len = sqrtf (move.x * move.x + move.y * move.y + move.z * move.z);
+  if (move_len > 0.0001f)
+    {
+      move.x /= move_len;
+      move.y /= move_len;
+      move.z /= move_len;
+    }
+
+  camera->position.x += move.x * speed;
+  camera->position.y += move.y * speed;
+  camera->position.z += move.z * speed;
 
   return RESULT_SUCCESS;
 }
