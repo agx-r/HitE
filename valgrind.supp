@@ -1,0 +1,29 @@
+{
+   Fontconfig
+   Memcheck:Leak
+   fun:FcPatternObjectInsertElt*
+}
+
+{
+   Pango
+   Memcheck:Leak
+   fun:pango_cairo_fc_font_map_fontset_key_substitute*
+}
+
+{
+   GTK
+   Memcheck:Leak
+   fun:gtk_label_measure*
+}
+
+{
+   Wayland
+   Memcheck:Leak
+   fun:proxy_create*
+}
+
+{
+   GLFW
+   Memcheck:Leak
+   fun:_glfwCreateWindowWayland*
+}
