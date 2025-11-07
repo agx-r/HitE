@@ -14,9 +14,6 @@ main (int argc, char **argv)
   logger_init ();
   logger_set_level (LOG_LEVEL_DEBUG);
 
-  LOG_INFO ("Main", "=== HitE ===");
-  LOG_INFO ("Main", "High-performance Vulkan raymarching engine");
-
   engine_config_t config = engine_config_default ();
 
   engine_state_t state;
