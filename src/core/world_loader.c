@@ -24,8 +24,7 @@ world_loader_init (void)
 
 static result_t
 parse_component_definition (scheme_state_t *state, pointer comp_sexp,
-                            const char **out_name, void **out_data,
-                            size_t *out_size)
+                            void **out_data, size_t *out_size)
 {
   if (!scheme_is_pair_wrapper (state, comp_sexp))
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
@@ -37,7 +36,6 @@ parse_component_definition (scheme_state_t *state, pointer comp_sexp,
                          "Component name must be a string");
 
   const char *comp_name = scheme_string_wrapper (state, name_obj);
-  *out_name = strdup (comp_name);
 
   if (strcmp (comp_name, "shape") == 0)
     {
@@ -196,8 +194,13 @@ parse_entity_template (scheme_state_t *state, pointer entity_sexp,
                       continue;
                     }
 
-                  const char *comp_name
+                  char *comp_name
                       = strdup (scheme_string_wrapper (state, comp_name_obj));
+                  if (!comp_name)
+                    {
+                      current = scheme_cdr_wrapper (state, current);
+                      continue;
+                    }
 
                   size_t idx = out_template->component_count++;
                   out_template->components[idx].component_name = comp_name;
@@ -210,12 +213,11 @@ parse_entity_template (scheme_state_t *state, pointer entity_sexp,
                     }
                   else
                     {
-
                       void *comp_data;
                       size_t comp_size;
 
                       result_t res = parse_component_definition (
-                          state, field, &comp_name, &comp_data, &comp_size);
+                          state, field, &comp_data, &comp_size);
                       if (res.code == RESULT_OK)
                         {
                           out_template->components[idx].data = comp_data;
@@ -494,7 +496,8 @@ world_definition_free (world_definition_t *definition)
           entity_template_t *tmpl = &definition->entity_templates[i];
           if (tmpl->name)
             free ((void *)tmpl->name);
-
+          if (tmpl->prefab_name)
+            free ((void *)tmpl->prefab_name);
           if (tmpl->components)
             {
               for (size_t j = 0; j < tmpl->component_count; j++)
