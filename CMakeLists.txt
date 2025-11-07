@@ -1,14 +1,11 @@
 cmake_minimum_required(VERSION 3.20)
-project(hite C CXX)
+project(hite C)
 
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -Wall -Wextra -Wno-missing-braces")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -Wextra -Wno-missing-braces")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2 -DNDEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -DNDEBUG")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DNDEBUG")
 
 find_package(Vulkan REQUIRED)
 find_package(glfw3 REQUIRED)
@@ -36,7 +33,6 @@ target_compile_features(tinyscheme PUBLIC c_std_99)
 # Srcs
 file(GLOB_RECURSE SOURCES
     "src/*.c"
-    "src/*.cpp"
 )
 
 # Exe

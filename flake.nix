@@ -60,7 +60,7 @@
           shellHook = ''
             export VK_LAYER_PATH="${pkgs.vulkan-validation-layers}/share/vulkan/explicit_layer.d"
             export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath buildInputs}:$LD_LIBRARY_PATH"
-            echo "Hite development environment loaded"
+            echo "dev env loaded"
             echo "Vulkan version: $(vulkaninfo --summary 2>/dev/null | grep 'Vulkan Instance Version' || echo 'Not available')"
           '';
         };
