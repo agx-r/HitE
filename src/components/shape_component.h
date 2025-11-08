@@ -37,6 +37,7 @@ typedef struct
   shape_operation_t operation;
 
   vec3_t dimensions;
+  float size;
 
   vec4_t color;
   float roughness;

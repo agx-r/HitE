@@ -6,131 +6,53 @@
 #include <stdio.h>
 #include <string.h>
 
-static void
-apply_shape_component_override (scheme_state_t *state, pointer sexp,
-                                shape_component_t *target)
+static pointer
+component_fields_cursor (scheme_state_t *state, pointer sexp)
 {
-  if (!state || !sexp || !target)
-    {
-      LOG_ERROR ("Component Override", "Invalid arguments for shape override");
-      return;
-    }
-
-  if (!scheme_is_pair_wrapper (state, sexp))
-    {
-      LOG_ERROR ("Component Override", "S-expression is not a pair");
-      return;
-    }
-
-  LOG_DEBUG ("Component Override", "Parsing shape component override");
-
   pointer current = scheme_cdr_wrapper (state, sexp);
   if (scheme_is_pair_wrapper (state, current))
     current = scheme_cdr_wrapper (state, current);
-
-  while (scheme_is_pair_wrapper (state, current))
-    {
-      pointer field = scheme_car_wrapper (state, current);
-
-      if (scheme_is_pair_wrapper (state, field))
-        {
-          pointer field_name_obj = scheme_car_wrapper (state, field);
-          if (!scheme_is_symbol_wrapper (state, field_name_obj))
-            {
-              current = scheme_cdr_wrapper (state, current);
-              continue;
-            }
-
-          const char *field_name
-              = scheme_symbol_name_wrapper (state, field_name_obj);
-          if (!field_name)
-            {
-              current = scheme_cdr_wrapper (state, current);
-              continue;
-            }
-
-          if (strcmp (field_name, "type") == 0)
-            {
-              pointer type_value = scheme_car_wrapper (
-                  state, scheme_cdr_wrapper (state, field));
-              parse_shape_type (state, type_value, &target->type);
-            }
-          else if (strcmp (field_name, "position") == 0)
-            {
-              pointer pos_list = scheme_cdr_wrapper (state, field);
-              result_t res = scheme_parse_vec3 (state, pos_list,
-                                                &target->transform.position);
-              if (res.code == RESULT_OK)
-                {
-                  LOG_DEBUG ("Component Override",
-                             "Updated position to: %.2f %.2f %.2f",
-                             target->transform.position.x,
-                             target->transform.position.y,
-                             target->transform.position.z);
-                }
-              else
-                {
-                  LOG_WARNING ("Component Override",
-                               "Failed to parse position: %s", res.message);
-                }
-            }
-          else if (strcmp (field_name, "dimensions") == 0)
-            {
-              pointer dim_list = scheme_cdr_wrapper (state, field);
-              scheme_parse_vec3 (state, dim_list, &target->dimensions);
-            }
-          else if (strcmp (field_name, "color") == 0)
-            {
-              pointer color_list = scheme_cdr_wrapper (state, field);
-              scheme_parse_vec4 (state, color_list, &target->color);
-            }
-          else if (strcmp (field_name, "visible") == 0)
-            {
-              pointer visible_value = scheme_cadr_wrapper (state, field);
-              if (scheme_is_boolean_wrapper (state, visible_value))
-                target->visible
-                    = scheme_boolean_wrapper (state, visible_value);
-            }
-
-          else if (strcmp (field_name, "seed") == 0)
-            {
-              pointer seed_value = scheme_cadr_wrapper (state, field);
-              if (target->type == SHAPE_TERRAIN
-                  || target->type == SHAPE_CITADEL)
-                {
-                  scheme_parse_float (state, seed_value, &target->roughness);
-                }
-            }
-        }
-
-      current = scheme_cdr_wrapper (state, current);
-    }
-
-  target->dirty = true;
+  return current;
 }
 
-result_t
+static void
+shape_component_set_defaults (shape_component_t *component)
+{
+  memset (component, 0, sizeof (*component));
+  component->type = SHAPE_SPHERE;
+  component->operation = SHAPE_OP_UNION;
+  component->dimensions = (vec3_t){ 1.0f, 1.0f, 1.0f, 0.0f };
+  component->size = 1.0f;
+  component->color = (vec4_t){ 1.0f, 1.0f, 1.0f, 1.0f };
+  component->transform.position = (vec3_t){ 0.0f, 0.0f, 0.0f, 0.0f };
+  component->transform.scale = (vec3_t){ 1.0f, 1.0f, 1.0f, 0.0f };
+  component->transform.rotation = (vec4_t){ 0.0f, 0.0f, 0.0f, 1.0f };
+  component->visible = true;
+  component->dirty = true;
+}
+
+static result_t
 parse_shape_type (scheme_state_t *state, pointer sexp, shape_type_t *out_type)
 {
   if (!state || !sexp || !out_type)
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
 
+  if (scheme_is_number_wrapper (state, sexp))
+    {
+      int value = (int)scheme_number_wrapper (state, sexp);
+      *out_type = (shape_type_t)value;
+      return RESULT_SUCCESS;
+    }
+
   const char *type_str = NULL;
   if (scheme_is_string_wrapper (state, sexp))
-    {
-      type_str = scheme_string_wrapper (state, sexp);
-      LOG_DEBUG ("Component Parser", "Type is a string: %s", type_str);
-    }
+    type_str = scheme_string_wrapper (state, sexp);
   else if (scheme_is_symbol_wrapper (state, sexp))
-    {
-      type_str = scheme_symbol_name_wrapper (state, sexp);
-      LOG_DEBUG ("Component Parser", "Type is a symbol: %s", type_str);
-    }
+    type_str = scheme_symbol_name_wrapper (state, sexp);
   else
-    {
-      return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
-                           "Shape type must be a string or symbol");
-    }
+    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
+                         "Shape type must be a string, symbol, or number");
+
   if (!type_str)
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
                          "Failed to get shape type");
@@ -153,6 +75,8 @@ parse_shape_type (scheme_state_t *state, pointer sexp, shape_type_t *out_type)
     *out_type = SHAPE_TERRAIN;
   else if (strcmp (type_str, "citadel") == 0)
     *out_type = SHAPE_CITADEL;
+  else if (strcmp (type_str, "custom") == 0)
+    *out_type = SHAPE_CUSTOM;
   else
     {
       char err[128];
@@ -163,6 +87,222 @@ parse_shape_type (scheme_state_t *state, pointer sexp, shape_type_t *out_type)
   return RESULT_SUCCESS;
 }
 
+static result_t
+parse_shape_operation (scheme_state_t *state, pointer sexp,
+                       shape_operation_t *out_operation)
+{
+  if (!state || !sexp || !out_operation)
+    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
+
+  if (scheme_is_number_wrapper (state, sexp))
+    {
+      int value = (int)scheme_number_wrapper (state, sexp);
+      *out_operation = (shape_operation_t)value;
+      return RESULT_SUCCESS;
+    }
+
+  const char *operation_str = NULL;
+  if (scheme_is_string_wrapper (state, sexp))
+    operation_str = scheme_string_wrapper (state, sexp);
+  else if (scheme_is_symbol_wrapper (state, sexp))
+    operation_str = scheme_symbol_name_wrapper (state, sexp);
+  else
+    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
+                         "Operation must be a string, symbol, or number");
+
+  if (!operation_str)
+    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
+                         "Failed to get shape operation");
+
+  if (strcmp (operation_str, "union") == 0)
+    *out_operation = SHAPE_OP_UNION;
+  else if (strcmp (operation_str, "subtraction") == 0)
+    *out_operation = SHAPE_OP_SUBTRACTION;
+  else if (strcmp (operation_str, "intersection") == 0)
+    *out_operation = SHAPE_OP_INTERSECTION;
+  else if (strcmp (operation_str, "smooth-union") == 0
+           || strcmp (operation_str, "smooth_union") == 0)
+    *out_operation = SHAPE_OP_SMOOTH_UNION;
+  else
+    {
+      char err[128];
+      snprintf (err, sizeof (err), "Unknown shape operation: %s",
+                operation_str);
+      return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, err);
+    }
+
+  return RESULT_SUCCESS;
+}
+
+static result_t
+shape_component_parse_impl (scheme_state_t *state, pointer sexp,
+                            shape_component_t *component, bool reset_defaults)
+{
+  if (!state || !sexp || !component)
+    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
+
+  if (!scheme_is_pair_wrapper (state, sexp))
+    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
+                         "Invalid component format");
+
+  if (reset_defaults)
+    shape_component_set_defaults (component);
+
+  pointer current = component_fields_cursor (state, sexp);
+
+  while (scheme_is_pair_wrapper (state, current))
+    {
+      pointer field = scheme_car_wrapper (state, current);
+      if (!scheme_is_pair_wrapper (state, field))
+        {
+          current = scheme_cdr_wrapper (state, current);
+          continue;
+        }
+
+      GET_FIELD_NAME (field)
+
+      if (strcmp (field_name, "type") == 0)
+        {
+          pointer type_value
+              = scheme_car_wrapper (state, scheme_cdr_wrapper (state, field));
+          result_t res
+              = parse_shape_type (state, type_value, &component->type);
+          if (res.code != RESULT_OK)
+            LOG_WARNING ("Component Parser", "%s", res.message);
+        }
+      else if (strcmp (field_name, "operation") == 0)
+        {
+          pointer op_value
+              = scheme_car_wrapper (state, scheme_cdr_wrapper (state, field));
+          result_t res
+              = parse_shape_operation (state, op_value, &component->operation);
+          if (res.code != RESULT_OK)
+            LOG_WARNING ("Component Parser", "%s", res.message);
+        }
+      else if (strcmp (field_name, "seed") == 0)
+        {
+          pointer value = scheme_cadr_wrapper (state, field);
+          scheme_parse_float (state, value, &component->roughness);
+        }
+      else
+        PARSE_VEC3 ("position", component->transform.position)
+      else PARSE_VEC3 ("scale", component->transform.scale) else PARSE_VEC4 (
+          "rotation",
+          component->transform
+              .rotation) else PARSE_VEC3 ("dimensions",
+                                          component
+                                              ->dimensions) else PARSE_FLOAT ("size",
+                                                                              component
+                                                                                  ->size) else PARSE_VEC4 ("color",
+                                                                                                           component
+                                                                                                               ->color) else PARSE_FLOAT ("roughness", component
+                                                                                                                                                           ->roughness) else PARSE_FLOAT ("metallic", component
+                                                                                                                                                                                                          ->metallic) else PARSE_FLOAT ("smoothing", component
+                                                                                                                                                                                                                                                         ->smoothing) else PARSE_BOOL ("visible",
+                                                                                                                                                                                                                                                                                       component
+                                                                                                                                                                                                                                                                                           ->visible) else PARSE_INT ("gpu-index", component
+                                                                                                                                                                                                                                                                                                                                       ->gpu_index) else PARSE_BOOL ("dirty",
+                                                                                                                                                                                                                                                                                                                                                                     component
+                                                                                                                                                                                                                                                                                                                                                                         ->dirty) else
+      {
+        LOG_DEBUG ("Component Parser", "Unknown shape field '%s'", field_name);
+      }
+
+      current = scheme_cdr_wrapper (state, current);
+    }
+
+  component->dirty = true;
+  return RESULT_SUCCESS;
+}
+
+static void
+camera_component_set_defaults (camera_component_t *component)
+{
+  memset (component, 0, sizeof (*component));
+  component->position = (vec3_t){ 0.0f, 0.0f, 0.0f, 0.0f };
+  component->direction = (vec3_t){ 0.0f, 0.0f, 1.0f, 0.0f };
+  component->up = (vec3_t){ 0.0f, 1.0f, 0.0f, 0.0f };
+  component->fov = 70.0f;
+  component->near_plane = 0.1f;
+  component->far_plane = 1000.0f;
+  component->background_color = (vec3_t){ 0.06f, 0.06f, 0.06f, 0.0f };
+  component->is_active = true;
+}
+
+static result_t
+camera_component_parse_impl (scheme_state_t *state, pointer sexp,
+                             camera_component_t *component,
+                             bool reset_defaults)
+{
+  if (!state || !sexp || !component)
+    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
+
+  if (!scheme_is_pair_wrapper (state, sexp))
+    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
+                         "Invalid component format");
+
+  if (reset_defaults)
+    camera_component_set_defaults (component);
+
+  pointer current = component_fields_cursor (state, sexp);
+
+  while (scheme_is_pair_wrapper (state, current))
+    {
+      pointer field = scheme_car_wrapper (state, current);
+      if (!scheme_is_pair_wrapper (state, field))
+        {
+          current = scheme_cdr_wrapper (state, current);
+          continue;
+        }
+
+      GET_FIELD_NAME (field)
+
+      PARSE_VEC3 ("position", component->position)
+      else PARSE_VEC3 ("direction", component->direction) else PARSE_VEC3 (
+          "up",
+          component
+              ->up) else PARSE_FLOAT ("fov",
+                                      component
+                                          ->fov) else PARSE_FLOAT ("near-"
+                                                                   "plane",
+                                                                   component
+                                                                       ->near_plane) else PARSE_FLOAT ("far-plane",
+                                                                                                       component
+                                                                                                           ->far_plane) else PARSE_BOOL ("active",
+                                                                                                                                         component
+                                                                                                                                             ->is_active) else PARSE_VEC3 ("background-color",
+                                                                                                                                                                           component
+                                                                                                                                                                               ->background_color) else
+      {
+        LOG_DEBUG ("Component Parser", "Unknown camera field '%s'",
+                   field_name);
+      }
+
+      current = scheme_cdr_wrapper (state, current);
+    }
+
+  return RESULT_SUCCESS;
+}
+
+static void
+apply_shape_component_override (scheme_state_t *state, pointer sexp,
+                                shape_component_t *target)
+{
+  if (!target)
+    {
+      LOG_WARNING ("Component Override", "Shape override target is NULL");
+      return;
+    }
+
+  result_t res = shape_component_parse_impl (state, sexp, target,
+                                             false /* keep data */);
+  if (res.code != RESULT_OK)
+    {
+      LOG_WARNING ("Component Override", "Failed to apply shape override: %s",
+                   res.message ? res.message : "unknown error");
+    }
+}
+
 result_t
 parse_shape_component (scheme_state_t *state, pointer sexp,
                        shape_component_t *out_component)
@@ -170,114 +310,7 @@ parse_shape_component (scheme_state_t *state, pointer sexp,
   if (!state || !sexp || !out_component)
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
 
-  memset (out_component, 0, sizeof (shape_component_t));
-  out_component->type = SHAPE_SPHERE;
-  out_component->operation = SHAPE_OP_UNION;
-  out_component->color = (vec4_t){ 1.0f, 1.0f, 1.0f, 1.0f };
-  out_component->dimensions = (vec3_t){ 1.0f, 1.0f, 1.0f, 0.0f };
-  out_component->transform.position = (vec3_t){ 0.0f, 0.0f, 0.0f, 0.0f };
-  out_component->transform.scale = (vec3_t){ 1.0f, 1.0f, 1.0f, 0.0f };
-  out_component->transform.rotation = (vec4_t){ 0.0f, 0.0f, 0.0f, 1.0f };
-  out_component->visible = true;
-  out_component->dirty = true;
-
-  if (!scheme_is_pair_wrapper (state, sexp))
-    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
-                         "Invalid component format");
-
-  pointer current = scheme_cdr_wrapper (state, sexp);
-  if (scheme_is_pair_wrapper (state, current))
-    current = scheme_cdr_wrapper (state, current);
-
-  while (scheme_is_pair_wrapper (state, current))
-    {
-      pointer field = scheme_car_wrapper (state, current);
-
-      if (scheme_is_pair_wrapper (state, field))
-        {
-          pointer field_name_obj = scheme_car_wrapper (state, field);
-          if (!scheme_is_symbol_wrapper (state, field_name_obj))
-            {
-              current = scheme_cdr_wrapper (state, current);
-              continue;
-            }
-
-          const char *field_name
-              = scheme_symbol_name_wrapper (state, field_name_obj);
-          if (!field_name)
-            {
-              current = scheme_cdr_wrapper (state, current);
-              continue;
-            }
-
-          if (strcmp (field_name, "type") == 0)
-            {
-
-              pointer type_value = scheme_car_wrapper (
-                  state, scheme_cdr_wrapper (state, field));
-              result_t res
-                  = parse_shape_type (state, type_value, &out_component->type);
-              if (res.code != RESULT_OK)
-                LOG_WARNING ("Component Parser", "%s", res.message);
-            }
-
-          else if (strcmp (field_name, "position") == 0)
-            {
-              pointer pos_list = scheme_cdr_wrapper (state, field);
-              result_t res = scheme_parse_vec3 (
-                  state, pos_list, &out_component->transform.position);
-              if (res.code != RESULT_OK)
-                LOG_WARNING ("Component Parser",
-                             "Warning parsing position: %s", res.message);
-            }
-
-          else if (strcmp (field_name, "dimensions") == 0)
-            {
-              pointer dim_list = scheme_cdr_wrapper (state, field);
-              result_t res = scheme_parse_vec3 (state, dim_list,
-                                                &out_component->dimensions);
-              if (res.code != RESULT_OK)
-                LOG_WARNING ("Component Parser",
-                             "Warning parsing dimensions: %s", res.message);
-            }
-
-          else if (strcmp (field_name, "color") == 0)
-            {
-              pointer color_list = scheme_cdr_wrapper (state, field);
-              result_t res = scheme_parse_vec4 (state, color_list,
-                                                &out_component->color);
-              if (res.code != RESULT_OK)
-                LOG_WARNING ("Component Parser", "Warning parsing color: %s",
-                             res.message);
-            }
-
-          else if (strcmp (field_name, "visible") == 0)
-            {
-              pointer visible_value = scheme_cadr_wrapper (state, field);
-              if (scheme_is_boolean_wrapper (state, visible_value))
-                out_component->visible
-                    = scheme_boolean_wrapper (state, visible_value);
-            }
-
-          else if (strcmp (field_name, "seed") == 0)
-            {
-              pointer seed_value = scheme_cadr_wrapper (state, field);
-              if (out_component->type == SHAPE_TERRAIN
-                  || out_component->type == SHAPE_CITADEL)
-                {
-                  result_t res = scheme_parse_float (
-                      state, seed_value, &out_component->roughness);
-                  if (res.code != RESULT_OK)
-                    LOG_WARNING ("Component Parser",
-                                 "Warning parsing seed: %s", res.message);
-                }
-            }
-        }
-
-      current = scheme_cdr_wrapper (state, current);
-    }
-
-  return RESULT_SUCCESS;
+  return shape_component_parse_impl (state, sexp, out_component, true);
 }
 
 result_t
@@ -287,97 +320,7 @@ parse_camera_component (scheme_state_t *state, pointer sexp,
   if (!state || !sexp || !out_component)
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
 
-  memset (out_component, 0, sizeof (camera_component_t));
-  out_component->position = (vec3_t){ 0.0f, 0.0f, 0.0f, 0.0f };
-  out_component->direction = (vec3_t){ 0.0f, 0.0f, 1.0f, 0.0f };
-  out_component->up = (vec3_t){ 0.0f, 1.0f, 0.0f, 0.0f };
-  out_component->fov = 70.0f;
-  out_component->near_plane = 0.1f;
-  out_component->far_plane = 1000.0f;
-  out_component->background_color = (vec3_t){ 0.06f, 0.06f, 0.06f, 0.0f };
-  out_component->is_active = true;
-
-  pointer current = scheme_cdr_wrapper (state, sexp);
-  if (scheme_is_pair_wrapper (state, current))
-    current = scheme_cdr_wrapper (state, current);
-
-  while (scheme_is_pair_wrapper (state, current))
-    {
-      pointer field = scheme_car_wrapper (state, current);
-
-      if (scheme_is_pair_wrapper (state, field))
-        {
-          pointer field_name_obj = scheme_car_wrapper (state, field);
-          if (!scheme_is_symbol_wrapper (state, field_name_obj))
-            {
-              current = scheme_cdr_wrapper (state, current);
-              continue;
-            }
-
-          const char *field_name
-              = scheme_symbol_name_wrapper (state, field_name_obj);
-          if (!field_name)
-            {
-              current = scheme_cdr_wrapper (state, current);
-              continue;
-            }
-
-          if (strcmp (field_name, "position") == 0)
-            {
-              pointer pos_list = scheme_cdr_wrapper (state, field);
-              scheme_parse_vec3 (state, pos_list, &out_component->position);
-            }
-
-          else if (strcmp (field_name, "direction") == 0)
-            {
-              pointer dir_list = scheme_cdr_wrapper (state, field);
-              scheme_parse_vec3 (state, dir_list, &out_component->direction);
-            }
-
-          else if (strcmp (field_name, "up") == 0)
-            {
-              pointer up_list = scheme_cdr_wrapper (state, field);
-              scheme_parse_vec3 (state, up_list, &out_component->up);
-            }
-
-          else if (strcmp (field_name, "fov") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              scheme_parse_float (state, value, &out_component->fov);
-            }
-
-          else if (strcmp (field_name, "near-plane") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              scheme_parse_float (state, value, &out_component->near_plane);
-            }
-
-          else if (strcmp (field_name, "far-plane") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              scheme_parse_float (state, value, &out_component->far_plane);
-            }
-
-          else if (strcmp (field_name, "active") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              if (scheme_is_boolean_wrapper (state, value))
-                out_component->is_active
-                    = scheme_boolean_wrapper (state, value);
-            }
-
-          else if (strcmp (field_name, "background-color") == 0)
-            {
-              pointer color_list = scheme_cdr_wrapper (state, field);
-              scheme_parse_vec3 (state, color_list,
-                                 &out_component->background_color);
-            }
-        }
-
-      current = scheme_cdr_wrapper (state, current);
-    }
-
-  return RESULT_SUCCESS;
+  return camera_component_parse_impl (state, sexp, out_component, true);
 }
 
 result_t
@@ -398,38 +341,13 @@ parse_camera_movement_component (scheme_state_t *state, pointer sexp,
   while (scheme_is_pair_wrapper (state, current))
     {
       pointer field = scheme_car_wrapper (state, current);
-
       if (scheme_is_pair_wrapper (state, field))
         {
-          pointer field_name_obj = scheme_car_wrapper (state, field);
-          if (!scheme_is_symbol_wrapper (state, field_name_obj))
-            {
-              current = scheme_cdr_wrapper (state, current);
-              continue;
-            }
+          GET_FIELD_NAME (field)
 
-          const char *field_name
-              = scheme_symbol_name_wrapper (state, field_name_obj);
-          if (!field_name)
-            {
-              current = scheme_cdr_wrapper (state, current);
-              continue;
-            }
-
-          if (strcmp (field_name, "move-speed") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              scheme_parse_float (state, value, &out_component->move_speed);
-            }
-
-          else if (strcmp (field_name, "enabled") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              if (scheme_is_boolean_wrapper (state, value))
-                out_component->enabled = scheme_boolean_wrapper (state, value);
-            }
+          PARSE_FLOAT ("move-speed", out_component->move_speed)
+          else PARSE_BOOL ("enabled", out_component->enabled)
         }
-
       current = scheme_cdr_wrapper (state, current);
     }
 
@@ -460,71 +378,24 @@ parse_camera_rotation_component (scheme_state_t *state, pointer sexp,
   while (scheme_is_pair_wrapper (state, current))
     {
       pointer field = scheme_car_wrapper (state, current);
-
       if (scheme_is_pair_wrapper (state, field))
         {
-          pointer field_name_obj = scheme_car_wrapper (state, field);
-          if (!scheme_is_symbol_wrapper (state, field_name_obj))
-            {
-              current = scheme_cdr_wrapper (state, current);
-              continue;
-            }
+          GET_FIELD_NAME (field)
 
-          const char *field_name
-              = scheme_symbol_name_wrapper (state, field_name_obj);
-          if (!field_name)
-            {
-              current = scheme_cdr_wrapper (state, current);
-              continue;
-            }
-
-          if (strcmp (field_name, "yaw") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              scheme_parse_float (state, value, &out_component->yaw);
-            }
-
-          else if (strcmp (field_name, "pitch") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              scheme_parse_float (state, value, &out_component->pitch);
-            }
-
-          else if (strcmp (field_name, "look-sensitivity") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              scheme_parse_float (state, value,
-                                  &out_component->look_sensitivity);
-            }
-
-          else if (strcmp (field_name, "max-pitch") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              scheme_parse_float (state, value, &out_component->max_pitch);
-            }
-
-          else if (strcmp (field_name, "min-pitch") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              scheme_parse_float (state, value, &out_component->min_pitch);
-            }
-
-          else if (strcmp (field_name, "mouse-captured") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              if (scheme_is_boolean_wrapper (state, value))
-                out_component->mouse_captured
-                    = scheme_boolean_wrapper (state, value);
-            }
-
-          else if (strcmp (field_name, "enabled") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              if (scheme_is_boolean_wrapper (state, value))
-                out_component->enabled = scheme_boolean_wrapper (state, value);
-            }
+          PARSE_FLOAT ("yaw", out_component->yaw)
+          else PARSE_FLOAT ("pitch", out_component->pitch) else PARSE_FLOAT (
+              "look-sensitivity",
+              out_component
+                  ->look_sensitivity) else PARSE_FLOAT ("max-pitch",
+                                                        out_component
+                                                            ->max_pitch) else PARSE_FLOAT ("min-pitch",
+                                                                                           out_component
+                                                                                               ->min_pitch) else PARSE_BOOL ("mouse-captured",
+                                                                                                                             out_component
+                                                                                                                                 ->mouse_captured) else PARSE_BOOL ("enabled",
+                                                                                                                                                                    out_component
+                                                                                                                                                                        ->enabled)
         }
-
       current = scheme_cdr_wrapper (state, current);
     }
 
@@ -552,39 +423,14 @@ parse_developer_overlay_component (
   while (scheme_is_pair_wrapper (state, current))
     {
       pointer field = scheme_car_wrapper (state, current);
-
       if (scheme_is_pair_wrapper (state, field))
         {
-          pointer field_name_obj = scheme_car_wrapper (state, field);
-          if (!scheme_is_symbol_wrapper (state, field_name_obj))
-            {
-              current = scheme_cdr_wrapper (state, current);
-              continue;
-            }
+          GET_FIELD_NAME (field)
 
-          const char *field_name
-              = scheme_symbol_name_wrapper (state, field_name_obj);
-          if (!field_name)
-            {
-              current = scheme_cdr_wrapper (state, current);
-              continue;
-            }
-
-          if (strcmp (field_name, "enabled") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              if (scheme_is_boolean_wrapper (state, value))
-                out_component->enabled = scheme_boolean_wrapper (state, value);
-            }
-
-          else if (strcmp (field_name, "fps-update-interval") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              scheme_parse_float (state, value,
-                                  &out_component->fps_update_interval);
-            }
+          PARSE_BOOL ("enabled", out_component->enabled)
+          else PARSE_FLOAT ("fps-update-interval",
+                            out_component->fps_update_interval)
         }
-
       current = scheme_cdr_wrapper (state, current);
     }
 
@@ -614,7 +460,6 @@ apply_component_override (scheme_state_t *state, const char *component_name,
     }
   else if (strcmp (component_name, "camera") == 0)
     {
-
       camera_component_t *camera = (camera_component_t *)target_component;
       pointer current = scheme_cdr_wrapper (state, sexp);
       if (scheme_is_pair_wrapper (state, current))
@@ -623,68 +468,31 @@ apply_component_override (scheme_state_t *state, const char *component_name,
       while (scheme_is_pair_wrapper (state, current))
         {
           pointer field = scheme_car_wrapper (state, current);
-
           if (scheme_is_pair_wrapper (state, field))
             {
-              pointer field_name_obj = scheme_car_wrapper (state, field);
-              if (!scheme_is_symbol_wrapper (state, field_name_obj))
-                {
-                  current = scheme_cdr_wrapper (state, current);
-                  continue;
-                }
+              GET_FIELD_NAME (field)
 
-              const char *field_name
-                  = scheme_symbol_name_wrapper (state, field_name_obj);
-              if (!field_name)
-                {
-                  current = scheme_cdr_wrapper (state, current);
-                  continue;
-                }
-
-              if (strcmp (field_name, "position") == 0)
-                {
-                  pointer pos_list = scheme_cdr_wrapper (state, field);
-                  scheme_parse_vec3 (state, pos_list, &camera->position);
-                }
-              else if (strcmp (field_name, "direction") == 0)
-                {
-                  pointer dir_list = scheme_cdr_wrapper (state, field);
-                  scheme_parse_vec3 (state, dir_list, &camera->direction);
-                }
-              else if (strcmp (field_name, "up") == 0)
-                {
-                  pointer up_list = scheme_cdr_wrapper (state, field);
-                  scheme_parse_vec3 (state, up_list, &camera->up);
-                }
-              else if (strcmp (field_name, "fov") == 0)
-                {
-                  pointer value = scheme_cadr_wrapper (state, field);
-                  scheme_parse_float (state, value, &camera->fov);
-                }
-              else if (strcmp (field_name, "near-plane") == 0)
-                {
-                  pointer value = scheme_cadr_wrapper (state, field);
-                  scheme_parse_float (state, value, &camera->near_plane);
-                }
-              else if (strcmp (field_name, "far-plane") == 0)
-                {
-                  pointer value = scheme_cadr_wrapper (state, field);
-                  scheme_parse_float (state, value, &camera->far_plane);
-                }
-              else if (strcmp (field_name, "background-color") == 0)
-                {
-                  pointer color_list = scheme_cdr_wrapper (state, field);
-                  scheme_parse_vec3 (state, color_list,
-                                     &camera->background_color);
-                }
-              else if (strcmp (field_name, "active") == 0)
-                {
-                  pointer value = scheme_cadr_wrapper (state, field);
-                  if (scheme_is_boolean_wrapper (state, value))
-                    camera->is_active = scheme_boolean_wrapper (state, value);
-                }
+              PARSE_VEC3 ("position", camera->position)
+              else PARSE_VEC3 ("direction", camera->direction) else PARSE_VEC3 (
+                  "up",
+                  camera
+                      ->up) else PARSE_FLOAT ("fov",
+                                              camera
+                                                  ->fov) else PARSE_FLOAT ("ne"
+                                                                           "ar"
+                                                                           "-p"
+                                                                           "la"
+                                                                           "n"
+                                                                           "e",
+                                                                           camera
+                                                                               ->near_plane) else PARSE_FLOAT ("far-plane",
+                                                                                                               camera
+                                                                                                                   ->far_plane) else PARSE_VEC3 ("background-color",
+                                                                                                                                                 camera
+                                                                                                                                                     ->background_color) else PARSE_BOOL ("active",
+                                                                                                                                                                                          camera
+                                                                                                                                                                                              ->is_active)
             }
-
           current = scheme_cdr_wrapper (state, current);
         }
     }
@@ -706,23 +514,9 @@ parse_lighting_component (scheme_state_t *state, pointer sexp,
   while (scheme_is_pair_wrapper (state, current))
     {
       pointer field = scheme_car_wrapper (state, current);
-
       if (scheme_is_pair_wrapper (state, field))
         {
-          pointer field_name_obj = scheme_car_wrapper (state, field);
-          if (!scheme_is_symbol_wrapper (state, field_name_obj))
-            {
-              current = scheme_cdr_wrapper (state, current);
-              continue;
-            }
-
-          const char *field_name
-              = scheme_symbol_name_wrapper (state, field_name_obj);
-          if (!field_name)
-            {
-              current = scheme_cdr_wrapper (state, current);
-              continue;
-            }
+          GET_FIELD_NAME (field)
 
           if (strcmp (field_name, "sun-direction") == 0)
             {
@@ -731,7 +525,6 @@ parse_lighting_component (scheme_state_t *state, pointer sexp,
                 {
                   scheme_parse_vec3 (state, value,
                                      &out_component->sun_direction);
-
                   float len = sqrtf (out_component->sun_direction.x
                                          * out_component->sun_direction.x
                                      + out_component->sun_direction.y
@@ -746,61 +539,25 @@ parse_lighting_component (scheme_state_t *state, pointer sexp,
                     }
                 }
             }
-
           else if (strcmp (field_name, "sun-color") == 0)
             {
               pointer value = scheme_cadr_wrapper (state, field);
               if (scheme_is_pair_wrapper (state, value))
-                {
-                  scheme_parse_vec3 (state, value, &out_component->sun_color);
-                }
+                scheme_parse_vec3 (state, value, &out_component->sun_color);
             }
-
-          else if (strcmp (field_name, "ambient-strength") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              scheme_parse_float (state, value,
-                                  &out_component->ambient_strength);
-            }
-
-          else if (strcmp (field_name, "diffuse-strength") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              scheme_parse_float (state, value,
-                                  &out_component->diffuse_strength);
-            }
-
-          else if (strcmp (field_name, "shadow-bias") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              scheme_parse_float (state, value, &out_component->shadow_bias);
-            }
-
-          else if (strcmp (field_name, "shadow-softness") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              scheme_parse_float (state, value,
-                                  &out_component->shadow_softness);
-            }
-
-          else if (strcmp (field_name, "shadow-steps") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              if (scheme_is_number_wrapper (state, value))
-                {
-                  int steps = (int)scheme_number_wrapper (state, value);
-                  out_component->shadow_steps = steps;
-                }
-            }
-
-          else if (strcmp (field_name, "enabled") == 0)
-            {
-              pointer value = scheme_cadr_wrapper (state, field);
-              if (scheme_is_boolean_wrapper (state, value))
-                out_component->enabled = scheme_boolean_wrapper (state, value);
-            }
+          else
+            PARSE_FLOAT ("ambient-strength", out_component->ambient_strength)
+          else PARSE_FLOAT ("diffuse-strength", out_component->diffuse_strength) else PARSE_FLOAT (
+              "shadow-bias",
+              out_component
+                  ->shadow_bias) else PARSE_FLOAT ("shadow-softness",
+                                                   out_component
+                                                       ->shadow_softness) else PARSE_INT ("shadow-steps",
+                                                                                          out_component
+                                                                                              ->shadow_steps) else PARSE_BOOL ("enabled",
+                                                                                                                               out_component
+                                                                                                                                   ->enabled)
         }
-
       current = scheme_cdr_wrapper (state, current);
     }
 

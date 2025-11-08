@@ -35,9 +35,9 @@ citadel_de (vec3 p)
 }
 
 float
-shape_citadel_eval (vec3 p, float seed)
+shape_citadel_eval (vec3 p, float size)
 {
-  return 120 * citadel_de (p / 120);
+  return size * citadel_de (p / size);
 }
 
 #endif

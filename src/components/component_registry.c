@@ -1,14 +1,5 @@
-
-
 #include "component_registry.h"
-#include "camera_component.h"
-#include "camera_movement_component.h"
-#include "camera_rotation_component.h"
-#include "developer_overlay_component.h"
-#include "lighting_component.h"
-#include "shape_component.h"
 
-#include "../core/component_parsers.h"
 #include "../core/ecs.h"
 #include "../core/logger.h"
 
@@ -41,7 +32,8 @@ register_component_helper (ecs_world_t *world, const char *name,
   result_t result = ecs_register_component (world, &descriptor, &out_id);
   if (result.code != RESULT_OK)
     {
-      LOG_ERROR ("Component Registry", "Failed to register component '%s': %s",
+      LOG_ERROR ("Component Registry",
+                 "Failed to register component '%s' (%s): %s", display_name,
                  name, result.message);
     }
 }

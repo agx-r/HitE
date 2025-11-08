@@ -26,7 +26,7 @@ eval_shape (vec3 local_p, vec4 position, vec4 dimensions, vec4 params)
   if (t == 7u)
     return shape_terrain_eval (local_p, params.x);
   if (t == 8u)
-    return shape_citadel_eval (local_p, params.x);
+    return shape_citadel_eval (local_p, params.y);
   if (t == 9u)
     return shape_town_eval (local_p, params.x);
 
