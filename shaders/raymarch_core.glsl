@@ -6,7 +6,6 @@
 
 const int MAX_STEPS = SCENE_MAX_STEPS;
 const float MAX_DIST = SCENE_MAX_DISTANCE;
-const float EPSILON = SCENE_RAYMARCH_HIT_EPSILON;
 
 float
 scene_sdf (vec3 p, out vec4 color)
@@ -41,10 +40,11 @@ scene_sdf (vec3 p, out vec4 color)
 }
 
 vec3
-calculate_normal (vec3 p)
+calculate_normal (vec3 p, vec3 camera_pos)
 {
   vec4 dummy_color;
-  const float h = EPSILON;
+  float h = scene_raymarch_epsilon (distance (camera_pos, p));
+  h = max (h, 0.005);
   const vec2 k = vec2 (1, -1);
   return normalize (k.xyy * scene_sdf (p + k.xyy * h, dummy_color)
                     + k.yyx * scene_sdf (p + k.yyx * h, dummy_color)
@@ -69,10 +69,11 @@ raymarch (vec3 ro, vec3 rd, vec3 camera_pos)
     {
       vec3 p = ro + rd * depth;
       float dist = scene_sdf (p, color);
+      float epsilon = scene_raymarch_epsilon (distance (camera_pos, p));
 
-      if (dist < EPSILON)
+      if (dist < epsilon)
         {
-          vec3 normal = calculate_normal (p);
+          vec3 normal = calculate_normal (p, camera_pos);
           vec3 hit_pos = p;
 
           result.color = vec4 (color.rgb, depth);

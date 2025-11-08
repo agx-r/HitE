@@ -18,7 +18,7 @@
       (position 0 0 0)))
   
   (entity (prefab "developer_camera")
-          (component "camera_movement"
-                     (move-speed 2))
+          ; (component "camera_movement"
+          ;            (move-speed 1))
           (component "camera"
-                     (position 0 324 696))))
+                     (position 0 182 300))))

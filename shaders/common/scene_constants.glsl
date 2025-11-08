@@ -3,9 +3,13 @@
 
 const float SCENE_MAX_DISTANCE = 512.0;
 const float SCENE_RAYMARCH_HIT_EPSILON = 0.02;
+const float SCENE_RAYMARCH_HIT_EPSILON_FAR = 0.3;
+const float SCENE_EPSILON_DISTANCE_START = 0.0;
+const float SCENE_EPSILON_DISTANCE_FULL = SCENE_MAX_DISTANCE;
 const int SCENE_MAX_STEPS = 256;
 
 const float SCENE_SHADOW_EPSILON = 0.03;
+const float SCENE_SHADOW_EPSILON_FAR = 0.04;
 const int SCENE_MAX_SHADOW_STEPS = 32;
 
 const float SCENE_FADE_START_FACTOR = 0.7;
@@ -38,5 +42,33 @@ const float SCENE_HIT_FLAG_THRESHOLD = 0.5;
 
 const vec3 SCENE_LUMINANCE_WEIGHTS = vec3 (0.299, 0.587, 0.114);
 const float SCENE_SRGB_GAMMA = 1.0 / 3.2;
+
+float
+scene_epsilon_distance_factor (float distance_to_camera)
+{
+  float range = SCENE_EPSILON_DISTANCE_FULL - SCENE_EPSILON_DISTANCE_START;
+  if (range <= 0.0)
+    {
+      return (distance_to_camera >= SCENE_EPSILON_DISTANCE_FULL) ? 1.0 : 0.0;
+    }
+
+  float t = (distance_to_camera - SCENE_EPSILON_DISTANCE_START) / range;
+  return clamp (t, 0.0, 1.0);
+}
+
+float
+scene_raymarch_epsilon (float distance_to_camera)
+{
+  float factor = scene_epsilon_distance_factor (distance_to_camera);
+  return mix (SCENE_RAYMARCH_HIT_EPSILON, SCENE_RAYMARCH_HIT_EPSILON_FAR,
+              factor);
+}
+
+float
+scene_shadow_epsilon (float distance_to_camera)
+{
+  float factor = scene_epsilon_distance_factor (distance_to_camera);
+  return mix (SCENE_SHADOW_EPSILON, SCENE_SHADOW_EPSILON_FAR, factor);
+}
 
 #endif

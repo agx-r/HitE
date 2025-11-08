@@ -6,7 +6,6 @@ layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 #include "common/scene_constants.glsl"
 
 const float MAX_SHADOW_DISTANCE = SCENE_MAX_DISTANCE;
-const float SHADOW_EPSILON = SCENE_SHADOW_EPSILON;
 const int MAX_SHADOW_STEPS = SCENE_MAX_SHADOW_STEPS;
 
 const float RAYMARCH_MAX_DISTANCE = SCENE_MAX_DISTANCE;
@@ -105,6 +104,7 @@ shadow_raymarch (vec3 p, vec3 light_dir)
   float t = lighting_ubo.shadow_bias;
   float shadow = 1.0;
   float min_dist_to_obstacle = MAX_SHADOW_DISTANCE;
+  vec3 camera_pos = lighting_ubo.camera_position.xyz;
 
   int steps = int (lighting_ubo.shadow_steps);
   steps = min (steps, MAX_SHADOW_STEPS);
@@ -113,8 +113,9 @@ shadow_raymarch (vec3 p, vec3 light_dir)
     {
       vec3 pos = p + light_dir * t;
       float dist = scene_sdf_shadow (pos);
+      float shadow_epsilon = scene_shadow_epsilon (distance (camera_pos, pos));
 
-      if (dist < SHADOW_EPSILON)
+      if (dist < shadow_epsilon)
         {
           shadow = 0.0;
           break;
