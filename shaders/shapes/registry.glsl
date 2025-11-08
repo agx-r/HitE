@@ -11,8 +11,12 @@
 #include "town.glsl"
 
 float
-eval_shape (vec3 local_p, vec4 position, vec4 dimensions, vec4 params)
+eval_shape (vec3 local_p, vec4 position, vec4 dimensions, vec4 params,
+            out vec3 dynamic_color, out bool has_dynamic_color)
 {
+  dynamic_color = vec3 (0.0);
+  has_dynamic_color = false;
+
   uint t = uint (dimensions.w);
 
   if (t == 0u)
@@ -26,7 +30,14 @@ eval_shape (vec3 local_p, vec4 position, vec4 dimensions, vec4 params)
   if (t == 7u)
     return shape_terrain_eval (local_p, params.x);
   if (t == 8u)
-    return shape_citadel_eval (local_p, params.y);
+    {
+      vec3 orbit_color;
+      float distance = shape_citadel_eval (local_p, params.y, orbit_color);
+      has_dynamic_color = true;
+      float intensity = max (params.w, 1.0);
+      dynamic_color = orbit_color * intensity;
+      return distance;
+    }
   if (t == 9u)
     return shape_town_eval (local_p, params.x);
 

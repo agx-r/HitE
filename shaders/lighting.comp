@@ -88,8 +88,10 @@ scene_sdf_shadow (vec3 p)
         continue;
 
       vec3 local_p = p - obj.position.xyz;
-      float dist
-          = eval_shape (local_p, obj.position, obj.dimensions, obj.params);
+      vec3 dynamic_color;
+      bool has_dynamic_color;
+      float dist = eval_shape (local_p, obj.position, obj.dimensions,
+                               obj.params, dynamic_color, has_dynamic_color);
       min_dist = min (min_dist, dist);
     }
   return min_dist;

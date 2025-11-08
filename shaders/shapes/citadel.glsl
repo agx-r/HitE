@@ -2,21 +2,20 @@
 #define SHAPE_CITADEL_GLSL
 #include "shape_common.glsl"
 
-vec3 orbitColor;
 float
-citadel_de (vec3 p)
+citadel_de (vec3 p, out vec3 orbit_color)
 {
   float scale = 1.4741;
   float angle1 = 0.0;
   float angle2 = 0.0;
   vec3 shift = vec3 (-10.27, 3.28, -1.90);
-  vec3 color = vec3 (1.17, 0.07, 1.27);
+  vec3 color = vec3 (0.05, 0.03, 0.09);
   vec2 a1 = vec2 (sin (angle1), cos (angle1));
   vec2 a2 = vec2 (sin (angle2), cos (angle2));
   mat2 rmZ = mat2 (a1.y, a1.x, -a1.x, a1.y);
   mat2 rmX = mat2 (a2.y, a2.x, -a2.x, a2.y);
   float s = 1.0;
-  orbitColor = vec3 (0.0);
+  vec3 color_accum = vec3 (0.0);
   for (int i = 0; i < 15; ++i)
     {
       p = abs (p);
@@ -28,16 +27,20 @@ citadel_de (vec3 p)
       p *= scale;
       s *= scale;
       p += shift;
-      orbitColor = max (orbitColor, p * color);
+      color_accum = max (color_accum, p * color);
     }
+  orbit_color = color_accum;
   vec3 d = abs (p) - vec3 (6.0);
   return (min (max (d.x, max (d.y, d.z)), 0.0) + length (max (d, 0.0))) / s;
 }
 
 float
-shape_citadel_eval (vec3 p, float size)
+shape_citadel_eval (vec3 p, float size, out vec3 orbit_color)
 {
-  return size * citadel_de (p / size);
+  vec3 local_color;
+  float distance = citadel_de (p / size, local_color);
+  orbit_color = local_color;
+  return size * distance;
 }
 
 #endif

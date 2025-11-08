@@ -8,12 +8,12 @@
     (up 0 1 0)
     (fov 190.0)
     (near-plane 2)
-    (background-color 0.009 0.009 0.011)
+    (background-color 0.0 0.0 0.0)
     (far-plane 1000.0)
     (active #t))
   
   (component "camera_movement"
-    (move-speed 5.0)
+    (move-speed 25.0)
     (enabled #t))
 
   (component "developer_overlay")

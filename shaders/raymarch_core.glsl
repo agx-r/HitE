@@ -19,13 +19,20 @@ scene_sdf (vec3 p, out vec4 color)
       SDFObject obj = sdf_objects.objects[i];
       vec3 local_p = p - obj.position.xyz;
 
-      float dist
-          = eval_shape (local_p, obj.position, obj.dimensions, obj.params);
+      vec3 dynamic_color;
+      bool has_dynamic_color;
+      float dist = eval_shape (local_p, obj.position, obj.dimensions,
+                               obj.params, dynamic_color, has_dynamic_color);
 
       if (dist < min_dist)
         {
           min_dist = dist;
-          color = obj.color;
+          vec3 base_color = has_dynamic_color ? dynamic_color : obj.color.rgb;
+          if (has_dynamic_color)
+            {
+              base_color *= obj.color.rgb;
+            }
+          color = vec4 (base_color, obj.color.a);
         }
     }
 
