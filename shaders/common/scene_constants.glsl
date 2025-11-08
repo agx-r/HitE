@@ -2,11 +2,11 @@
 #define SCENE_CONSTANTS_GLSL
 
 const float SCENE_MAX_DISTANCE = 512.0;
+const float SCENE_RAYMARCH_HIT_EPSILON = 0.02;
 const int SCENE_MAX_STEPS = 256;
 
-const float SCENE_SHADOW_EPSILON = 0.01;
-const float SCENE_RAYMARCH_HIT_EPSILON = 0.1;
-const int SCENE_MAX_SHADOW_STEPS = 64;
+const float SCENE_SHADOW_EPSILON = 0.03;
+const int SCENE_MAX_SHADOW_STEPS = 32;
 
 const float SCENE_FADE_START_FACTOR = 0.7;
 const float SCENE_FADE_END_FACTOR = 1.0;
