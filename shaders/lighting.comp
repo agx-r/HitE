@@ -41,6 +41,25 @@ const float HIT_FLAG_THRESHOLD = SCENE_HIT_FLAG_THRESHOLD;
 const vec3 LUMINANCE_WEIGHTS = SCENE_LUMINANCE_WEIGHTS;
 const float SRGB_GAMMA = SCENE_SRGB_GAMMA;
 
+const bool REFLECTION_ENABLED = SCENE_REFLECTION_ENABLED;
+const float REFLECTION_STRENGTH = SCENE_REFLECTION_STRENGTH;
+const float REFLECTION_FRESNEL_POWER = SCENE_REFLECTION_FRESNEL_POWER;
+const float REFLECTION_MAX_DISTANCE = SCENE_REFLECTION_MAX_DISTANCE;
+const int REFLECTION_MAX_STEPS = SCENE_REFLECTION_MAX_STEPS;
+const float REFLECTION_SURFACE_BIAS = SCENE_REFLECTION_SURFACE_BIAS;
+const float REFLECTION_MIN_STEP = SCENE_REFLECTION_MIN_STEP;
+const float REFLECTION_DISTANCE_ATTENUATION
+    = SCENE_REFLECTION_DISTANCE_ATTENUATION;
+const float REFLECTION_EPSILON_SCALE = SCENE_REFLECTION_EPSILON_SCALE;
+const vec3 REFLECTION_TINT = SCENE_REFLECTION_TINT;
+
+const float AO_STRENGTH = SCENE_AO_STRENGTH;
+const float AO_BIAS = SCENE_AO_BIAS;
+const float AO_STEP = SCENE_AO_STEP;
+const float AO_DISTANCE = SCENE_AO_DISTANCE;
+const float AO_SCALE_DECAY = SCENE_AO_SCALE_DECAY;
+const int AO_SAMPLES = SCENE_AO_SAMPLES;
+
 layout (binding = 0) uniform LightingUniforms
 {
   vec4 sun_direction;
@@ -76,10 +95,21 @@ sdf_objects;
 
 #include "shapes/registry.glsl"
 
-float
-scene_sdf_shadow (vec3 p)
+struct SceneSdfSample
 {
-  float min_dist = MAX_SHADOW_DISTANCE;
+  float distance;
+  vec3 color;
+  float alpha;
+};
+
+SceneSdfSample
+scene_sdf_sample (vec3 p)
+{
+  SceneSdfSample result;
+  result.distance = SCENE_MAX_DISTANCE;
+  result.color = vec3 (0.0);
+  result.alpha = 1.0;
+
   uint count = min (lighting_ubo.object_count, 256u);
   for (uint i = 0u; i < count; i++)
     {
@@ -93,9 +123,83 @@ scene_sdf_shadow (vec3 p)
       float dist
           = eval_shape (local_p, obj.position, obj.dimensions, obj.params,
                         lighting_ubo.time, dynamic_color, has_dynamic_color);
-      min_dist = min (min_dist, dist);
+
+      if (dist < result.distance)
+        {
+          result.distance = dist;
+          vec3 base_color = has_dynamic_color ? dynamic_color : obj.color.rgb;
+          if (has_dynamic_color)
+            {
+              base_color *= obj.color.rgb;
+            }
+          result.color = base_color;
+          result.alpha = obj.color.a;
+        }
     }
-  return min_dist;
+
+  return result;
+}
+
+float
+scene_sdf_shadow (vec3 p)
+{
+  return scene_sdf_sample (p).distance;
+}
+
+bool
+trace_reflection (vec3 origin, vec3 direction, out vec3 color)
+{
+  float travel = 0.0;
+  color = vec3 (0.0);
+  vec3 camera_pos = lighting_ubo.camera_position.xyz;
+
+  for (int step = 0;
+       step < REFLECTION_MAX_STEPS && travel < REFLECTION_MAX_DISTANCE; step++)
+    {
+      vec3 pos = origin + direction * travel;
+      SceneSdfSample hit = scene_sdf_sample (pos);
+
+      float epsilon = scene_raymarch_epsilon (distance (camera_pos, pos))
+                      * REFLECTION_EPSILON_SCALE;
+
+      if (hit.distance < epsilon)
+        {
+          color = hit.color;
+          return true;
+        }
+
+      float remaining = REFLECTION_MAX_DISTANCE - travel;
+      float step_size = min (hit.distance, remaining);
+      step_size = max (step_size, REFLECTION_MIN_STEP);
+      travel += step_size;
+    }
+
+  return false;
+}
+
+float
+ambient_occlusion (vec3 position, vec3 normal)
+{
+  if (AO_SAMPLES <= 0 || AO_STRENGTH <= 0.0)
+    return 1.0;
+
+  float occlusion = 0.0;
+  float scale = 1.0;
+  for (int i = 0; i < AO_SAMPLES; i++)
+    {
+      float step_length = AO_STEP * float (i + 1);
+      if (step_length > AO_DISTANCE)
+        break;
+
+      vec3 sample_pos = position + normal * (step_length + AO_BIAS);
+      SceneSdfSample sample_hit = scene_sdf_sample (sample_pos);
+      float delta = step_length - sample_hit.distance;
+      occlusion += max (delta, 0.0) * scale;
+      scale *= AO_SCALE_DECAY;
+    }
+
+  float ao = 1.0 - clamp (occlusion * AO_STRENGTH, 0.0, 1.0);
+  return clamp (ao, 0.0, 1.0);
 }
 
 float
@@ -215,6 +319,7 @@ main ()
                                  + uv.y * up * FOV_ASPECT_CORRECTION);
       vec3 camera_pos = lighting_ubo.camera_position.xyz;
       vec3 world_pos = camera_pos + view_dir * depth;
+      float ao = ambient_occlusion (world_pos, normal);
 
       vec3 sun_dir = normalize (lighting_ubo.sun_direction.xyz);
       float NdotL = max (dot (normal, sun_dir), 0.0);
@@ -227,6 +332,7 @@ main ()
 
       float shadow_factor = max (shadow, SHADOW_MIN_HARD);
       vec3 lit_color = ambient * shadow_factor + diffuse;
+      lit_color *= ao;
 
       float shadow_blend = 1.0 - shadow;
       vec3 shadow_color = vec3 (0.0);
@@ -238,6 +344,41 @@ main ()
       near_factor = pow (near_factor, NEAR_LIGHT_POWER);
       vec3 near_light = surface_color * near_factor * NEAR_LIGHT_STRENGTH;
       final_color += near_light;
+
+      if (REFLECTION_ENABLED && REFLECTION_STRENGTH > 0.0)
+        {
+          vec3 view_vector = normalize (camera_pos - world_pos);
+          float facing
+              = clamp (1.0 - max (dot (normal, view_vector), 0.0), 0.0, 1.0);
+          float fresnel = pow (facing, REFLECTION_FRESNEL_POWER);
+
+          float distance_factor = 1.0;
+          if (REFLECTION_DISTANCE_ATTENUATION > 0.0)
+            {
+              distance_factor = exp (-depth / REFLECTION_DISTANCE_ATTENUATION);
+            }
+
+          float reflection_amount = clamp (
+              REFLECTION_STRENGTH * fresnel * distance_factor, 0.0, 1.0);
+
+          if (reflection_amount > 0.0)
+            {
+              vec3 reflection_dir = reflect (-view_vector, normal);
+              vec3 reflection_origin
+                  = world_pos + normal * REFLECTION_SURFACE_BIAS;
+
+              vec3 reflection_color;
+              bool has_reflection = trace_reflection (
+                  reflection_origin, reflection_dir, reflection_color);
+
+              vec3 env_color = has_reflection
+                                   ? reflection_color
+                                   : lighting_ubo.background_color.rgb;
+              env_color *= REFLECTION_TINT;
+
+              final_color = mix (final_color, env_color, reflection_amount);
+            }
+        }
 
       float luminance = dot (final_color, LUMINANCE_WEIGHTS);
       bool is_white_surface = luminance > WHITE_SURFACE_LUMINANCE;

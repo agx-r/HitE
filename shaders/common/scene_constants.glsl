@@ -43,6 +43,24 @@ const float SCENE_HIT_FLAG_THRESHOLD = 0.5;
 const vec3 SCENE_LUMINANCE_WEIGHTS = vec3 (0.299, 0.587, 0.114);
 const float SCENE_SRGB_GAMMA = 1.0 / 3.2;
 
+const bool SCENE_REFLECTION_ENABLED = true;
+const float SCENE_REFLECTION_STRENGTH = 0.35;
+const float SCENE_REFLECTION_FRESNEL_POWER = 4.0;
+const float SCENE_REFLECTION_MAX_DISTANCE = 64.0;
+const int SCENE_REFLECTION_MAX_STEPS = 32;
+const float SCENE_REFLECTION_SURFACE_BIAS = 0.05;
+const float SCENE_REFLECTION_MIN_STEP = 0.05;
+const float SCENE_REFLECTION_DISTANCE_ATTENUATION = 80.0;
+const float SCENE_REFLECTION_EPSILON_SCALE = 1.0;
+const vec3 SCENE_REFLECTION_TINT = vec3 (1.0, 1.0, 1.0);
+
+const float SCENE_AO_STRENGTH = 0.4;
+const float SCENE_AO_BIAS = 0.04;
+const float SCENE_AO_STEP = 0.4;
+const float SCENE_AO_DISTANCE = 4.0;
+const float SCENE_AO_SCALE_DECAY = 0.6;
+const int SCENE_AO_SAMPLES = 6;
+
 float
 scene_epsilon_distance_factor (float distance_to_camera)
 {
