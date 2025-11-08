@@ -6,7 +6,7 @@
 
 const int MAX_STEPS = SCENE_MAX_STEPS;
 const float MAX_DIST = SCENE_MAX_DISTANCE;
-const float EPSILON = 0.001;
+const float EPSILON = SCENE_RAYMARCH_HIT_EPSILON;
 
 float
 scene_sdf (vec3 p, out vec4 color)
@@ -21,8 +21,9 @@ scene_sdf (vec3 p, out vec4 color)
 
       vec3 dynamic_color;
       bool has_dynamic_color;
-      float dist = eval_shape (local_p, obj.position, obj.dimensions,
-                               obj.params, dynamic_color, has_dynamic_color);
+      float dist
+          = eval_shape (local_p, obj.position, obj.dimensions, obj.params,
+                        ubo.time, dynamic_color, has_dynamic_color);
 
       if (dist < min_dist)
         {

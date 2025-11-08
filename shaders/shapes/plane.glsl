@@ -3,7 +3,7 @@
 #include "shape_common.glsl"
 
 float
-shape_plane_eval (vec3 p, vec3 normal, float distance)
+shape_plane_eval (vec3 p, vec3 normal, float distance, float time)
 {
   return sdf_plane (p, normal, distance);
 }

@@ -3,7 +3,7 @@
 #include "shape_common.glsl"
 
 float
-shape_torus_eval (vec3 p, vec2 dimensions)
+shape_torus_eval (vec3 p, vec2 dimensions, float time)
 {
   return sdf_torus (p, dimensions);
 }

@@ -86,6 +86,7 @@ typedef struct
   vec4_t camera_direction;
   vec2_t resolution;
   vec4_t background_color;
+  float time;
   float ambient_strength;
   float diffuse_strength;
   float shadow_bias;

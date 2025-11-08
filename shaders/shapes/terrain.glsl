@@ -78,7 +78,7 @@ terrain_de (vec3 p)
 }
 
 float
-shape_terrain_eval (vec3 p, float seed)
+shape_terrain_eval (vec3 p, float seed, float time)
 {
   return 100 * terrain_de (p / 100);
 }

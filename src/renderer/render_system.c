@@ -316,6 +316,7 @@ render_system_render_frame (render_system_t *system, ecs_world_t *world,
           lighting_uniforms.background_color
               = (vec4_t){ 0.06f, 0.06f, 0.06f, 0 };
         }
+      lighting_uniforms.time = time;
       lighting_uniforms.ambient_strength = lighting->ambient_strength;
       lighting_uniforms.diffuse_strength = lighting->diffuse_strength;
       lighting_uniforms.shadow_bias = lighting->shadow_bias;

@@ -17,7 +17,7 @@ town_de (vec3 p)
 }
 
 float
-shape_town_eval (vec3 p, float seed)
+shape_town_eval (vec3 p, float seed, float time)
 {
   return town_de (p);
 }

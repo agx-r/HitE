@@ -50,6 +50,7 @@ layout (binding = 0) uniform LightingUniforms
   vec4 camera_direction;
   vec4 resolution;
   vec4 background_color;
+  float time;
   float ambient_strength;
   float diffuse_strength;
   float shadow_bias;
@@ -90,8 +91,9 @@ scene_sdf_shadow (vec3 p)
       vec3 local_p = p - obj.position.xyz;
       vec3 dynamic_color;
       bool has_dynamic_color;
-      float dist = eval_shape (local_p, obj.position, obj.dimensions,
-                               obj.params, dynamic_color, has_dynamic_color);
+      float dist
+          = eval_shape (local_p, obj.position, obj.dimensions, obj.params,
+                        lighting_ubo.time, dynamic_color, has_dynamic_color);
       min_dist = min (min_dist, dist);
     }
   return min_dist;
@@ -226,8 +228,9 @@ main ()
       vec3 lit_color = ambient * shadow_factor + diffuse;
 
       float shadow_blend = 1.0 - shadow;
-      final_color = mix (lit_color, lighting_ubo.background_color.rgb,
-                         shadow_blend * SHADOW_SOFT_BLEND);
+      vec3 shadow_color = vec3 (0.0);
+      final_color
+          = mix (lit_color, shadow_color, shadow_blend * SHADOW_SOFT_BLEND);
       final_color = min (final_color, vec3 (1.0));
 
       float near_factor = 1.0 - clamp (depth / NEAR_LIGHT_DISTANCE, 0.0, 1.0);

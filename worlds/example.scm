@@ -21,4 +21,4 @@
           (component "camera_movement"
                      (move-speed 2))
           (component "camera"
-                     (position 529 557 920))))
+                     (position 563 327 304))))
