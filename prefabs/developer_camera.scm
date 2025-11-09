@@ -16,7 +16,7 @@
     (move-speed 8.0)
     (enabled #t))
 
-  (component "developer_overlay")
+  ; (component "developer_overlay")
   
   (component "camera_rotation"
     (yaw -3.14159)

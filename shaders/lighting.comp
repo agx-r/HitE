@@ -11,16 +11,19 @@ const int MAX_SHADOW_STEPS = SCENE_MAX_SHADOW_STEPS;
 const float RAYMARCH_MAX_DISTANCE = SCENE_MAX_DISTANCE;
 const float FADE_START_FACTOR = SCENE_FADE_START_FACTOR;
 const float FADE_END_FACTOR = SCENE_FADE_END_FACTOR;
+const bool FADE_ENABLED = SCENE_FADE_ENABLED;
 
 const float NOISE_MAX_DISTANCE = SCENE_NOISE_MAX_DISTANCE;
 const float NOISE_MAX_STRENGTH = SCENE_NOISE_MAX_STRENGTH;
 const float NOISE_SHADOW_MIN_BLEND = SCENE_NOISE_SHADOW_MIN_BLEND;
 const float NOISE_SHADOW_MAX_BLEND = SCENE_NOISE_SHADOW_MAX_BLEND;
 const float NOISE_SCALE = SCENE_NOISE_SCALE;
+const bool NOISE_ENABLED = SCENE_NOISE_ENABLED;
 
 const float NEAR_LIGHT_DISTANCE = SCENE_NEAR_LIGHT_DISTANCE;
 const float NEAR_LIGHT_STRENGTH = SCENE_NEAR_LIGHT_STRENGTH;
 const float NEAR_LIGHT_POWER = SCENE_NEAR_LIGHT_POWER;
+const bool NEAR_LIGHT_ENABLED = SCENE_NEAR_LIGHT_ENABLED;
 
 const float WHITE_SURFACE_LUMINANCE = SCENE_WHITE_SURFACE_LUMINANCE;
 const float WHITE_SURFACE_DEPTH_MAX = SCENE_WHITE_SURFACE_DEPTH_MAX;
@@ -29,6 +32,7 @@ const float WHITE_SURFACE_DEPTH_REDUCE = SCENE_WHITE_SURFACE_DEPTH_REDUCE;
 const float SHADOW_MIN_HARD = SCENE_SHADOW_MIN_HARD;
 const float SHADOW_SOFT_BLEND = SCENE_SHADOW_SOFT_BLEND;
 const float SHADOW_SOFT_POWER = SCENE_SHADOW_SOFT_POWER;
+const bool HARD_SHADOWS_ENABLED = SCENE_HARD_SHADOWS_ENABLED;
 
 const float FOV_ASPECT_CORRECTION = SCENE_FOV_ASPECT_CORRECTION;
 const float DEPTH_VALID_MIN = SCENE_DEPTH_VALID_MIN;
@@ -59,6 +63,7 @@ const float AO_STEP = SCENE_AO_STEP;
 const float AO_DISTANCE = SCENE_AO_DISTANCE;
 const float AO_SCALE_DECAY = SCENE_AO_SCALE_DECAY;
 const int AO_SAMPLES = SCENE_AO_SAMPLES;
+const bool AO_ENABLED = SCENE_AO_ENABLED;
 
 layout (binding = 0) uniform LightingUniforms
 {
@@ -180,7 +185,7 @@ trace_reflection (vec3 origin, vec3 direction, out vec3 color)
 float
 ambient_occlusion (vec3 position, vec3 normal)
 {
-  if (AO_SAMPLES <= 0 || AO_STRENGTH <= 0.0)
+  if (!AO_ENABLED || AO_SAMPLES <= 0 || AO_STRENGTH <= 0.0)
     return 1.0;
 
   float occlusion = 0.0;
@@ -205,6 +210,11 @@ ambient_occlusion (vec3 position, vec3 normal)
 float
 shadow_raymarch (vec3 p, vec3 light_dir)
 {
+  if (!HARD_SHADOWS_ENABLED)
+    {
+      return 1.0;
+    }
+
   float t = lighting_ubo.shadow_bias;
   float shadow = 1.0;
   float min_dist_to_obstacle = MAX_SHADOW_DISTANCE;
@@ -342,8 +352,11 @@ main ()
 
       float near_factor = 1.0 - clamp (depth / NEAR_LIGHT_DISTANCE, 0.0, 1.0);
       near_factor = pow (near_factor, NEAR_LIGHT_POWER);
-      vec3 near_light = surface_color * near_factor * NEAR_LIGHT_STRENGTH;
-      final_color += near_light;
+      if (NEAR_LIGHT_ENABLED && NEAR_LIGHT_STRENGTH > 0.0)
+        {
+          vec3 near_light = surface_color * near_factor * NEAR_LIGHT_STRENGTH;
+          final_color += near_light;
+        }
 
       if (REFLECTION_ENABLED && REFLECTION_STRENGTH > 0.0)
         {
@@ -392,7 +405,7 @@ main ()
           final_color *= depth_factor;
         }
 
-      if (depth < NOISE_MAX_DISTANCE)
+      if (NOISE_ENABLED && depth < NOISE_MAX_DISTANCE)
         {
           float noise_strength
               = (1.0 - depth / NOISE_MAX_DISTANCE) * NOISE_MAX_STRENGTH;
@@ -410,16 +423,20 @@ main ()
       final_color = lighting_ubo.background_color.rgb;
     }
 
-  float fade_start = RAYMARCH_MAX_DISTANCE * FADE_START_FACTOR;
-  float fade_t
-      = (depth >= fade_start)
-            ? smoothstep (0.0, 1.0,
-                          (depth - fade_start)
-                              / (RAYMARCH_MAX_DISTANCE
-                                 * (FADE_END_FACTOR - FADE_START_FACTOR)))
-            : 0.0;
+  if (FADE_ENABLED)
+    {
+      float fade_start = RAYMARCH_MAX_DISTANCE * FADE_START_FACTOR;
+      float fade_t
+          = (depth >= fade_start)
+                ? smoothstep (0.0, 1.0,
+                              (depth - fade_start)
+                                  / (RAYMARCH_MAX_DISTANCE
+                                     * (FADE_END_FACTOR - FADE_START_FACTOR)))
+                : 0.0;
 
-  final_color = mix (final_color, lighting_ubo.background_color.rgb, fade_t);
+      final_color
+          = mix (final_color, lighting_ubo.background_color.rgb, fade_t);
+    }
   final_color = linear_to_srgb (final_color);
 
   imageStore (output_image, pixel_coords, vec4 (final_color, 1.0));
