@@ -37,23 +37,24 @@ typedef struct
   bool enabled;
 } ALIGN_64 developer_overlay_component_t;
 
-result_t developer_overlay_component_start (ecs_world_t *world,
-                                            entity_id_t entity,
-                                            void *component_data);
-result_t developer_overlay_component_update (ecs_world_t *world,
-                                             entity_id_t entity,
-                                             void *component_data,
-                                             const time_info_t *time);
-result_t developer_overlay_component_render (ecs_world_t *world,
-                                             entity_id_t entity,
-                                             const void *component_data);
-void developer_overlay_component_destroy (void *component_data);
+static result_t developer_overlay_component_start (ecs_world_t *world,
+                                                   entity_id_t entity,
+                                                   void *component_data);
+static result_t developer_overlay_component_update (ecs_world_t *world,
+                                                    entity_id_t entity,
+                                                    void *component_data,
+                                                    const time_info_t *time);
+static result_t
+developer_overlay_component_render (ecs_world_t *world, entity_id_t entity,
+                                    const void *component_data);
+static void developer_overlay_component_destroy (void *component_data);
 
 void developer_overlay_component_register (ecs_world_t *world);
 
-result_t developer_overlay_add_text (developer_overlay_component_t *overlay,
-                                     const char *text, float x, float y,
-                                     float size, vec4_t color);
+static result_t
+developer_overlay_add_text (developer_overlay_component_t *overlay,
+                            const char *text, float x, float y, float size,
+                            vec4_t color);
 
 result_t developer_overlay_update_text (developer_overlay_component_t *overlay,
                                         size_t index, const char *text);

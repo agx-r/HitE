@@ -14,8 +14,7 @@ citadel_de (vec3 p, float time, out vec3 orbit_color)
   float c = 1.8;
   float d = 7.5;
 
-  float shift_z
-      = a - c * pow (sin (time * 0.02 / d), b) * pow (sin (time * 0.04), b);
+  float shift_z = -2 - (sin (time * 0.04));
   vec3 shift = vec3 (-10.25, 3.37, shift_z);
 
   vec3 color = vec3 (0.08, 0.03, 0.03);

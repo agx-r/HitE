@@ -25,14 +25,14 @@ typedef struct
   listener_id_t mouse_move_listener;
 } ALIGN_64 camera_rotation_component_t;
 
-result_t camera_rotation_component_start (ecs_world_t *world,
-                                          entity_id_t entity,
-                                          void *component_data);
-result_t camera_rotation_component_update (ecs_world_t *world,
-                                           entity_id_t entity,
-                                           void *component_data,
-                                           const time_info_t *time);
-void camera_rotation_component_destroy (void *component_data);
+static result_t camera_rotation_component_start (ecs_world_t *world,
+                                                 entity_id_t entity,
+                                                 void *component_data);
+static result_t camera_rotation_component_update (ecs_world_t *world,
+                                                  entity_id_t entity,
+                                                  void *component_data,
+                                                  const time_info_t *time);
+static void camera_rotation_component_destroy (void *component_data);
 
 void camera_rotation_component_register (ecs_world_t *world);
 

@@ -44,7 +44,7 @@ mouse_event_callback (const event_t *event, void *user_data)
     rotation->pitch = rotation->min_pitch;
 }
 
-result_t
+static result_t
 camera_rotation_component_start (ecs_world_t *world, entity_id_t entity,
                                  void *component_data)
 {
@@ -70,7 +70,7 @@ camera_rotation_component_start (ecs_world_t *world, entity_id_t entity,
   return RESULT_SUCCESS;
 }
 
-result_t
+static result_t
 camera_rotation_component_update (ecs_world_t *world, entity_id_t entity,
                                   void *component_data,
                                   const time_info_t *time)
@@ -110,7 +110,7 @@ camera_rotation_component_update (ecs_world_t *world, entity_id_t entity,
   return RESULT_SUCCESS;
 }
 
-void
+static void
 camera_rotation_component_destroy (void *component_data)
 {
   camera_rotation_component_t *rotation

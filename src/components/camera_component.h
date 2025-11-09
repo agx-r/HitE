@@ -20,14 +20,16 @@ typedef struct
   bool is_active;
 } ALIGN_64 camera_component_t;
 
-result_t camera_component_start (ecs_world_t *world, entity_id_t entity,
-                                 void *component_data);
-result_t camera_component_update (ecs_world_t *world, entity_id_t entity,
-                                  void *component_data,
-                                  const time_info_t *time);
-result_t camera_component_render (ecs_world_t *world, entity_id_t entity,
-                                  const void *component_data);
-void camera_component_destroy (void *component_data);
+static result_t camera_component_start (ecs_world_t *world, entity_id_t entity,
+                                        void *component_data);
+static result_t camera_component_update (ecs_world_t *world,
+                                         entity_id_t entity,
+                                         void *component_data,
+                                         const time_info_t *time);
+static result_t camera_component_render (ecs_world_t *world,
+                                         entity_id_t entity,
+                                         const void *component_data);
+static void camera_component_destroy (void *component_data);
 
 void camera_component_register (ecs_world_t *world);
 

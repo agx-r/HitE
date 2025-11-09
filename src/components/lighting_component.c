@@ -53,7 +53,7 @@ lighting_find_on_camera (ecs_world_t *world, entity_id_t camera_entity)
                                                     lighting_id);
 }
 
-result_t
+static result_t
 lighting_component_start (ecs_world_t *world, entity_id_t entity,
                           void *component_data)
 {
@@ -65,7 +65,7 @@ lighting_component_start (ecs_world_t *world, entity_id_t entity,
   return RESULT_SUCCESS;
 }
 
-result_t
+static result_t
 lighting_component_update (ecs_world_t *world, entity_id_t entity,
                            void *component_data, const time_info_t *time)
 {
@@ -77,7 +77,7 @@ lighting_component_update (ecs_world_t *world, entity_id_t entity,
   return RESULT_SUCCESS;
 }
 
-result_t
+static result_t
 lighting_component_render (ecs_world_t *world, entity_id_t entity,
                            const void *component_data)
 {
@@ -88,7 +88,7 @@ lighting_component_render (ecs_world_t *world, entity_id_t entity,
   return RESULT_SUCCESS;
 }
 
-void
+static void
 lighting_component_destroy (void *component_data)
 {
   (void)component_data;

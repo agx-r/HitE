@@ -1,0 +1,4 @@
+#ifndef PHYSICS_CONSTANTS_GLSL
+#define PHYSICS_CONSTANTS_GLSL
+
+#endif

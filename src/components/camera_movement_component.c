@@ -8,7 +8,7 @@
 #include <math.h>
 #include <string.h>
 
-result_t
+static result_t
 camera_movement_component_start (ecs_world_t *world, entity_id_t entity,
                                  void *component_data)
 {
@@ -20,7 +20,7 @@ camera_movement_component_start (ecs_world_t *world, entity_id_t entity,
   return RESULT_SUCCESS;
 }
 
-result_t
+static result_t
 camera_movement_component_update (ecs_world_t *world, entity_id_t entity,
                                   void *component_data,
                                   const time_info_t *time)
@@ -104,7 +104,7 @@ camera_movement_component_update (ecs_world_t *world, entity_id_t entity,
   return RESULT_SUCCESS;
 }
 
-void
+static void
 camera_movement_component_destroy (void *component_data)
 {
   (void)component_data;

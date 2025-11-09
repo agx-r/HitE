@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-result_t
+static result_t
 developer_overlay_component_start (ecs_world_t *world, entity_id_t entity,
                                    void *component_data)
 {
@@ -53,7 +53,7 @@ developer_overlay_component_start (ecs_world_t *world, entity_id_t entity,
   return RESULT_SUCCESS;
 }
 
-result_t
+static result_t
 developer_overlay_component_update (ecs_world_t *world, entity_id_t entity,
                                     void *component_data,
                                     const time_info_t *time)
@@ -131,7 +131,7 @@ developer_overlay_component_update (ecs_world_t *world, entity_id_t entity,
   return RESULT_SUCCESS;
 }
 
-result_t
+static result_t
 developer_overlay_component_render (ecs_world_t *world, entity_id_t entity,
                                     const void *component_data)
 {
@@ -156,7 +156,7 @@ developer_overlay_component_render (ecs_world_t *world, entity_id_t entity,
   return RESULT_SUCCESS;
 }
 
-void
+static void
 developer_overlay_component_destroy (void *component_data)
 {
   (void)component_data;
@@ -173,7 +173,7 @@ developer_overlay_component_register (ecs_world_t *world)
       "DevOverlay", 64, dependencies);
 }
 
-result_t
+static result_t
 developer_overlay_add_text (developer_overlay_component_t *overlay,
                             const char *text, float x, float y, float size,
                             vec4_t color)
