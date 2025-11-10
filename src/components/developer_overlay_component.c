@@ -2,9 +2,15 @@
 #include "../core/logger.h"
 #include "camera_component.h"
 #include "component_registry.h"
+#include "transform_component.h"
 
 #include <stdio.h>
 #include <string.h>
+
+static result_t
+developer_overlay_add_text (developer_overlay_component_t *overlay,
+                            const char *text, float x, float y, float size,
+                            vec4_t color);
 
 static result_t
 developer_overlay_component_start (ecs_world_t *world, entity_id_t entity,
@@ -105,22 +111,29 @@ developer_overlay_component_update (ecs_world_t *world, entity_id_t entity,
                          * 1000.0f);
         }
 
+      component_id_t transform_id = ecs_get_component_id (world, "transform");
       entity_id_t camera_entity = INVALID_ENTITY;
       camera_component_t *camera = camera_find_active (world, &camera_entity);
-      if (camera)
+      if (camera && transform_id != INVALID_ENTITY)
         {
-          LOG_DEBUG ("DevOverlay", "Camera: (%.2f, %.2f, %.2f)",
-                     camera->position.x, camera->position.y,
-                     camera->position.z);
-
-          if (overlay->camera_pos_text_initialized)
+          transform_component_t *transform
+              = (transform_component_t *)ecs_get_component (
+                  world, camera_entity, transform_id);
+          if (transform)
             {
-              char camera_text[128];
-              snprintf (camera_text, sizeof (camera_text),
-                        "Camera: (%.2f, %.2f, %.2f)", camera->position.x,
-                        camera->position.y, camera->position.z);
-              developer_overlay_update_text (
-                  overlay, overlay->camera_pos_text_index, camera_text);
+              vec3_t position = transform_get_position (transform);
+              LOG_DEBUG ("DevOverlay", "Camera: (%.2f, %.2f, %.2f)",
+                         position.x, position.y, position.z);
+
+              if (overlay->camera_pos_text_initialized)
+                {
+                  char camera_text[128];
+                  snprintf (camera_text, sizeof (camera_text),
+                            "Camera: (%.2f, %.2f, %.2f)", position.x,
+                            position.y, position.z);
+                  developer_overlay_update_text (
+                      overlay, overlay->camera_pos_text_index, camera_text);
+                }
             }
         }
 

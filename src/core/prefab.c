@@ -259,6 +259,42 @@ prefab_load (prefab_system_t *system, const char *filepath,
                                    res.message);
                     }
                 }
+              else if (strcmp (comp_name, "transform") == 0)
+                {
+                  transform_component_t transform_data;
+                  result_t res = parse_transform_component (
+                      g_scheme_state, field, &transform_data);
+                  if (res.code == RESULT_OK)
+                    {
+                      prefab_add_component (prefab, "transform",
+                                            &transform_data,
+                                            sizeof (transform_component_t));
+                      LOG_DEBUG ("Prefab", "Transform component parsed");
+                    }
+                  else
+                    {
+                      LOG_WARNING ("Prefab", "Failed to parse transform: %s",
+                                   res.message);
+                    }
+                }
+              else if (strcmp (comp_name, "transform") == 0)
+                {
+                  transform_component_t transform_data;
+                  result_t res = parse_transform_component (
+                      g_scheme_state, field, &transform_data);
+                  if (res.code == RESULT_OK)
+                    {
+                      prefab_add_component (prefab, "transform",
+                                            &transform_data,
+                                            sizeof (transform_component_t));
+                      LOG_DEBUG ("Prefab", "Transform component parsed");
+                    }
+                  else
+                    {
+                      LOG_WARNING ("Prefab", "Failed to parse transform: %s",
+                                   res.message);
+                    }
+                }
               else if (strcmp (comp_name, "camera") == 0)
                 {
                   camera_component_t camera_data;
@@ -333,6 +369,82 @@ prefab_load (prefab_system_t *system, const char *filepath,
                     {
                       LOG_WARNING ("Prefab",
                                    "Failed to parse developer_overlay: %s",
+                                   res.message);
+                    }
+                }
+              else if (strcmp (comp_name, "player") == 0)
+                {
+                  player_component_t player_data;
+                  result_t res = parse_player_component (g_scheme_state, field,
+                                                         &player_data);
+                  if (res.code == RESULT_OK)
+                    {
+                      prefab_add_component (prefab, "player", &player_data,
+                                            sizeof (player_component_t));
+                      LOG_DEBUG ("Prefab", "Player component parsed");
+                    }
+                  else
+                    {
+                      LOG_WARNING ("Prefab", "Failed to parse player: %s",
+                                   res.message);
+                    }
+                }
+              else if (strcmp (comp_name, "player_collider") == 0)
+                {
+                  player_collider_component_t collider_data;
+                  result_t res = parse_player_collider_component (
+                      g_scheme_state, field, &collider_data);
+                  if (res.code == RESULT_OK)
+                    {
+                      prefab_add_component (
+                          prefab, "player_collider", &collider_data,
+                          sizeof (player_collider_component_t));
+                      LOG_DEBUG ("Prefab", "Player collider component parsed");
+                    }
+                  else
+                    {
+                      LOG_WARNING ("Prefab",
+                                   "Failed to parse player_collider: %s",
+                                   res.message);
+                    }
+                }
+              else if (strcmp (comp_name, "player_movement_controls") == 0)
+                {
+                  player_movement_controls_component_t controls_data;
+                  result_t res = parse_player_movement_controls_component (
+                      g_scheme_state, field, &controls_data);
+                  if (res.code == RESULT_OK)
+                    {
+                      prefab_add_component (
+                          prefab, "player_movement_controls", &controls_data,
+                          sizeof (player_movement_controls_component_t));
+                      LOG_DEBUG ("Prefab",
+                                 "Player movement controls component parsed");
+                    }
+                  else
+                    {
+                      LOG_WARNING (
+                          "Prefab",
+                          "Failed to parse player_movement_controls: %s",
+                          res.message);
+                    }
+                }
+              else if (strcmp (comp_name, "player_movement") == 0)
+                {
+                  player_movement_component_t movement_data = { 0 };
+                  result_t res = parse_player_movement_component (
+                      g_scheme_state, field, &movement_data);
+                  if (res.code == RESULT_OK)
+                    {
+                      prefab_add_component (
+                          prefab, "player_movement", &movement_data,
+                          sizeof (player_movement_component_t));
+                      LOG_DEBUG ("Prefab", "Player movement component parsed");
+                    }
+                  else
+                    {
+                      LOG_WARNING ("Prefab",
+                                   "Failed to parse player_movement: %s",
                                    res.message);
                     }
                 }

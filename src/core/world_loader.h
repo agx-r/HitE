@@ -12,4 +12,8 @@ void world_definition_free (world_definition_t *definition);
 
 scheme_state_t *world_loader_get_scheme_state (void);
 
+result_t world_loader_parse_component (scheme_state_t *state,
+                                       pointer comp_sexp, void **out_data,
+                                       size_t *out_size);
+
 #endif

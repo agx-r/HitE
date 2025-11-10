@@ -6,7 +6,12 @@
 #include "../components/camera_rotation_component.h"
 #include "../components/developer_overlay_component.h"
 #include "../components/lighting_component.h"
+#include "../components/player_collider_component.h"
+#include "../components/player_component.h"
+#include "../components/player_movement_component.h"
+#include "../components/player_movement_controls_component.h"
 #include "../components/shape_component.h"
+#include "../components/transform_component.h"
 #include "scheme_parser.h"
 #include "types.h"
 
@@ -76,6 +81,24 @@ result_t parse_developer_overlay_component (
 
 result_t parse_lighting_component (scheme_state_t *state, pointer sexp,
                                    lighting_component_t *out_component);
+
+result_t parse_transform_component (scheme_state_t *state, pointer sexp,
+                                    transform_component_t *out_component);
+
+result_t parse_player_component (scheme_state_t *state, pointer sexp,
+                                 player_component_t *out_component);
+
+result_t
+parse_player_collider_component (scheme_state_t *state, pointer sexp,
+                                 player_collider_component_t *out_component);
+
+result_t parse_player_movement_controls_component (
+    scheme_state_t *state, pointer sexp,
+    player_movement_controls_component_t *out_component);
+
+result_t
+parse_player_movement_component (scheme_state_t *state, pointer sexp,
+                                 player_movement_component_t *out_component);
 
 void apply_component_override (scheme_state_t *state,
                                const char *component_name, pointer sexp,

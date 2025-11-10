@@ -4,22 +4,23 @@
   (use-fixed-timestep #f)
   
   ; (entity (prefab "torus")
-  ;   (component "shape"
+  ;   (component "transform"
   ;     (position 0 4 0)))
 
   ; (entity (prefab "torus")
-  ;   (component "shape"
-  ;     (position 0 8 0)))
+          ; (component "transform"
+                     ; (position 0.0 -18.0 0.0)))
 
   ; (entity (prefab "terrain"))
   
-  (entity (prefab "citadel")
-    (component "shape"
-      (position 0 0 0)))
+  (entity (prefab "citadel"))
   
-  (entity (prefab "developer_camera")
-          ; (component "camera_movement"
-          ;            (move-speed 1))
-          (component "camera"
-                     ; (position 0 182 300)
-                     (position 253 172 94))))
+  (entity (prefab "player")
+          (component "transform"
+                     (position 0.0 0.0 0.0)))
+
+  ; (entity (prefab "developer_camera")
+          ; (component "transform"
+                     ; (position 0 182 300)))
+                     ; (position 253 172 94)))
+)

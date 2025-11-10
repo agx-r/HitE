@@ -22,9 +22,9 @@ world_loader_init (void)
     }
 }
 
-static result_t
-parse_component_definition (scheme_state_t *state, pointer comp_sexp,
-                            void **out_data, size_t *out_size)
+result_t
+world_loader_parse_component (scheme_state_t *state, pointer comp_sexp,
+                              void **out_data, size_t *out_size)
 {
   if (!scheme_is_pair_wrapper (state, comp_sexp))
     return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER,
@@ -88,6 +88,20 @@ parse_component_definition (scheme_state_t *state, pointer comp_sexp,
         }
       *out_data = rotation_data;
       *out_size = sizeof (camera_rotation_component_t);
+    }
+  else if (strcmp (comp_name, "transform") == 0)
+    {
+      transform_component_t *transform_data
+          = malloc (sizeof (transform_component_t));
+      result_t res
+          = parse_transform_component (state, comp_sexp, transform_data);
+      if (res.code != RESULT_OK)
+        {
+          free (transform_data);
+          return res;
+        }
+      *out_data = transform_data;
+      *out_size = sizeof (transform_component_t);
     }
   else
     {
@@ -216,7 +230,7 @@ parse_entity_template (scheme_state_t *state, pointer entity_sexp,
                       void *comp_data;
                       size_t comp_size;
 
-                      result_t res = parse_component_definition (
+                      result_t res = world_loader_parse_component (
                           state, field, &comp_data, &comp_size);
                       if (res.code == RESULT_OK)
                         {

@@ -3,6 +3,7 @@
 #include "../core/logger.h"
 #include "camera_component.h"
 #include "component_registry.h"
+#include "transform_component.h"
 
 #include <GLFW/glfw3.h>
 #include <math.h>
@@ -36,19 +37,17 @@ camera_movement_component_update (ecs_world_t *world, entity_id_t entity,
   if (!input_handler)
     return RESULT_SUCCESS;
 
-  component_id_t camera_id = ecs_get_component_id (world, "camera");
-  if (camera_id == INVALID_ENTITY)
+  component_id_t transform_id = ecs_get_component_id (world, "transform");
+  transform_component_t *transform
+      = (transform_component_t *)ecs_get_component (world, entity,
+                                                    transform_id);
+  if (!transform)
     return RESULT_SUCCESS;
 
-  camera_component_t *camera
-      = (camera_component_t *)ecs_get_component (world, entity, camera_id);
-  if (!camera)
-    return RESULT_SUCCESS;
+  vec3_t forward = transform_forward (transform);
+  vec3_t flat = { forward.x, 0.0f, forward.z, 0.0f };
 
   float speed = movement->move_speed * time->delta_time;
-
-  vec3_t forward = camera->direction;
-  vec3_t flat = { forward.x, 0.0f, forward.z };
 
   float len = sqrtf (flat.x * flat.x + flat.z * flat.z);
   if (len > 0.0001f)
@@ -57,8 +56,8 @@ camera_movement_component_update (ecs_world_t *world, entity_id_t entity,
       flat.z /= len;
     }
 
-  vec3_t right = { -flat.z, 0.0f, flat.x };
-  vec3_t move = { 0.0f, 0.0f, 0.0f };
+  vec3_t right = { -flat.z, 0.0f, flat.x, 0.0f };
+  vec3_t move = { 0.0f, 0.0f, 0.0f, 0.0f };
 
   if (input_handler_get_key_state (input_handler, GLFW_KEY_W))
     {
@@ -97,9 +96,11 @@ camera_movement_component_update (ecs_world_t *world, entity_id_t entity,
       move.z /= move_len;
     }
 
-  camera->position.x += move.x * speed;
-  camera->position.y += move.y * speed;
-  camera->position.z += move.z * speed;
+  vec3_t position = transform_get_position (transform);
+  position.x += move.x * speed;
+  position.y += move.y * speed;
+  position.z += move.z * speed;
+  transform_set_position (transform, position);
 
   return RESULT_SUCCESS;
 }
@@ -113,8 +114,9 @@ camera_movement_component_destroy (void *component_data)
 void
 camera_movement_component_register (ecs_world_t *world)
 {
+  static const char *dependencies[] = { "transform", NULL };
   REGISTER_COMPONENT (
       world, "camera_movement", camera_movement_component_t,
       camera_movement_component_start, camera_movement_component_update, NULL,
-      camera_movement_component_destroy, "Camera Movement", 64, NULL);
+      camera_movement_component_destroy, "Camera Movement", 64, dependencies);
 }

@@ -2,9 +2,11 @@
 #include "../components/camera_component.h"
 #include "../components/camera_movement_component.h"
 #include "../components/camera_rotation_component.h"
+#include "../components/component_registry.h"
 #include "../components/developer_overlay_component.h"
 #include "../components/lighting_component.h"
 #include "../components/shape_component.h"
+#include "../components/transform_component.h"
 #include "logger.h"
 #include "prefab.h"
 #include "world_loader.h"
@@ -143,12 +145,7 @@ engine_load_world (engine_state_t *state, const engine_config_t *config,
       (struct input_handler_t *)&state->input_handler);
 
   LOG_INFO ("Engine", "Registering components...");
-  camera_component_register (state->world_manager->active_world);
-  camera_movement_component_register (state->world_manager->active_world);
-  camera_rotation_component_register (state->world_manager->active_world);
-  lighting_component_register (state->world_manager->active_world);
-  shape_component_register (state->world_manager->active_world);
-  developer_overlay_component_register (state->world_manager->active_world);
+  register_all_components (state->world_manager->active_world);
   LOG_INFO ("Engine", "Components registered");
 
   world_definition_t world_def = { 0 };
@@ -188,13 +185,25 @@ update_camera_from_component (engine_state_t *state)
   if (!state->world_manager || !state->world_manager->active_world)
     return;
 
-  camera_component_t *camera
-      = camera_find_active (state->world_manager->active_world, NULL);
-  if (camera)
+  entity_id_t camera_entity = INVALID_ENTITY;
+  ecs_world_t *world = state->world_manager->active_world;
+  camera_component_t *camera = camera_find_active (world, &camera_entity);
+  if (camera && world && camera_entity != INVALID_ENTITY)
     {
-
-      render_system_set_camera (&state->render_system, camera->position,
-                                camera->direction);
+      component_id_t transform_id = ecs_get_component_id (world, "transform");
+      if (transform_id != INVALID_ENTITY)
+        {
+          transform_component_t *transform
+              = (transform_component_t *)ecs_get_component (
+                  world, camera_entity, transform_id);
+          if (transform)
+            {
+              vec3_t position = transform_get_position (transform);
+              vec3_t forward = transform_forward (transform);
+              render_system_set_camera (&state->render_system, position,
+                                        forward);
+            }
+        }
     }
 }
 

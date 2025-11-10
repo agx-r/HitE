@@ -2,6 +2,17 @@
 
 #include "../core/ecs.h"
 #include "../core/logger.h"
+#include "camera_component.h"
+#include "camera_movement_component.h"
+#include "camera_rotation_component.h"
+#include "developer_overlay_component.h"
+#include "lighting_component.h"
+#include "player_collider_component.h"
+#include "player_component.h"
+#include "player_movement_component.h"
+#include "player_movement_controls_component.h"
+#include "shape_component.h"
+#include "transform_component.h"
 
 void
 register_component_helper (ecs_world_t *world, const char *name,
@@ -36,4 +47,20 @@ register_component_helper (ecs_world_t *world, const char *name,
                  "Failed to register component '%s' (%s): %s", display_name,
                  name, result.message);
     }
+}
+
+void
+register_all_components (ecs_world_t *world)
+{
+  transform_component_register (world);
+  camera_component_register (world);
+  camera_movement_component_register (world);
+  camera_rotation_component_register (world);
+  developer_overlay_component_register (world);
+  lighting_component_register (world);
+  shape_component_register (world);
+  player_component_register (world);
+  player_collider_component_register (world);
+  player_movement_controls_component_register (world);
+  player_movement_component_register (world);
 }

@@ -219,10 +219,7 @@ static void
 camera_component_set_defaults (camera_component_t *component)
 {
   memset (component, 0, sizeof (*component));
-  component->position = (vec3_t){ 0.0f, 0.0f, 0.0f, 0.0f };
-  component->direction = (vec3_t){ 0.0f, 0.0f, 1.0f, 0.0f };
-  component->up = (vec3_t){ 0.0f, 1.0f, 0.0f, 0.0f };
-  component->fov = 70.0f;
+  component->fov = CAMERA_DEFAULT_FOV;
   component->near_plane = 0.1f;
   component->far_plane = 1000.0f;
   component->background_color = (vec3_t){ 0.06f, 0.06f, 0.06f, 0.0f };
@@ -257,22 +254,15 @@ camera_component_parse_impl (scheme_state_t *state, pointer sexp,
 
       GET_FIELD_NAME (field)
 
-      PARSE_VEC3 ("position", component->position)
-      else PARSE_VEC3 ("direction", component->direction) else PARSE_VEC3 (
-          "up",
+      PARSE_FLOAT ("fov", component->fov)
+      else PARSE_FLOAT ("near-plane", component->near_plane) else PARSE_FLOAT (
+          "far-plane",
           component
-              ->up) else PARSE_FLOAT ("fov",
-                                      component
-                                          ->fov) else PARSE_FLOAT ("near-"
-                                                                   "plane",
-                                                                   component
-                                                                       ->near_plane) else PARSE_FLOAT ("far-plane",
-                                                                                                       component
-                                                                                                           ->far_plane) else PARSE_BOOL ("active",
-                                                                                                                                         component
-                                                                                                                                             ->is_active) else PARSE_VEC3 ("background-color",
-                                                                                                                                                                           component
-                                                                                                                                                                               ->background_color) else
+              ->far_plane) else PARSE_BOOL ("active",
+                                            component
+                                                ->is_active) else PARSE_VEC3 ("background-color",
+                                                                              component
+                                                                                  ->background_color) else
       {
         LOG_DEBUG ("Component Parser", "Unknown camera field '%s'",
                    field_name);
@@ -301,6 +291,113 @@ apply_shape_component_override (scheme_state_t *state, pointer sexp,
       LOG_WARNING ("Component Override", "Failed to apply shape override: %s",
                    res.message ? res.message : "unknown error");
     }
+}
+
+static void
+apply_transform_component_override (scheme_state_t *state, pointer sexp,
+                                    transform_component_t *target)
+{
+  if (!target)
+    {
+      LOG_WARNING ("Component Override", "Transform override target is NULL");
+      return;
+    }
+
+  LOG_DEBUG ("Component Override",
+             "Applying transform override (initial position: %.3f %.3f %.3f)",
+             target->transform.position.x, target->transform.position.y,
+             target->transform.position.z);
+
+  pointer current = component_fields_cursor (state, sexp);
+  bool any_field_applied = false;
+
+  while (scheme_is_pair_wrapper (state, current))
+    {
+      pointer field = scheme_car_wrapper (state, current);
+      if (!scheme_is_pair_wrapper (state, field))
+        {
+          current = scheme_cdr_wrapper (state, current);
+          continue;
+        }
+
+      GET_FIELD_NAME (field)
+
+      bool handled = false;
+
+      if (strcmp (field_name, "position") == 0)
+        {
+          vec3_t position = target->transform.position;
+          pointer value = scheme_cdr_wrapper (state, field);
+          scheme_parse_vec3 (state, value, &position);
+          transform_set_position (target, position);
+          LOG_DEBUG ("Component Override",
+                     "Transform override position -> %.3f %.3f %.3f",
+                     position.x, position.y, position.z);
+          any_field_applied = true;
+          handled = true;
+        }
+      else if (strcmp (field_name, "rotation") == 0)
+        {
+          vec4_t rotation = target->transform.rotation;
+          pointer value = scheme_cdr_wrapper (state, field);
+          scheme_parse_vec4 (state, value, &rotation);
+          transform_set_rotation (target, rotation);
+          LOG_DEBUG ("Component Override",
+                     "Transform override rotation quat -> %.3f %.3f %.3f %.3f",
+                     rotation.x, rotation.y, rotation.z, rotation.w);
+          any_field_applied = true;
+          handled = true;
+        }
+      else if (strcmp (field_name, "rotation-euler") == 0)
+        {
+          vec3_t euler = { 0.0f, 0.0f, 0.0f, 0.0f };
+          pointer value = scheme_cdr_wrapper (state, field);
+          scheme_parse_vec3 (state, value, &euler);
+          vec4_t quat
+              = transform_quaternion_from_euler (euler.x, euler.y, euler.z);
+          transform_set_rotation (target, quat);
+          LOG_DEBUG ("Component Override",
+                     "Transform override rotation euler -> %.3f %.3f %.3f",
+                     euler.x, euler.y, euler.z);
+          any_field_applied = true;
+          handled = true;
+        }
+      else if (strcmp (field_name, "scale") == 0)
+        {
+          pointer value = scheme_cdr_wrapper (state, field);
+          scheme_parse_vec3 (state, value, &target->transform.scale);
+          target->transform.scale._padding = 0.0f;
+          target->dirty = true;
+          LOG_DEBUG ("Component Override",
+                     "Transform override scale -> %.3f %.3f %.3f",
+                     target->transform.scale.x, target->transform.scale.y,
+                     target->transform.scale.z);
+          any_field_applied = true;
+          handled = true;
+        }
+      else if (strcmp (field_name, "dirty") == 0)
+        {
+          pointer value = scheme_cadr_wrapper (state, field);
+          if (scheme_is_boolean_wrapper (state, value))
+            {
+              target->dirty = scheme_boolean_wrapper (state, value);
+              handled = true;
+            }
+        }
+
+      if (!handled)
+        {
+          LOG_DEBUG ("Component Override",
+                     "Transform override ignored field '%s'", field_name);
+        }
+
+      current = scheme_cdr_wrapper (state, current);
+    }
+
+  LOG_DEBUG ("Component Override",
+             "Transform override %sapplied (final position: %.3f %.3f %.3f)",
+             any_field_applied ? "" : "NOT ", target->transform.position.x,
+             target->transform.position.y, target->transform.position.z);
 }
 
 result_t
@@ -472,29 +569,23 @@ apply_component_override (scheme_state_t *state, const char *component_name,
             {
               GET_FIELD_NAME (field)
 
-              PARSE_VEC3 ("position", camera->position)
-              else PARSE_VEC3 ("direction", camera->direction) else PARSE_VEC3 (
-                  "up",
+              PARSE_FLOAT ("fov", camera->fov)
+              else PARSE_FLOAT ("near-plane", camera->near_plane) else PARSE_FLOAT (
+                  "far-plane",
                   camera
-                      ->up) else PARSE_FLOAT ("fov",
-                                              camera
-                                                  ->fov) else PARSE_FLOAT ("ne"
-                                                                           "ar"
-                                                                           "-p"
-                                                                           "la"
-                                                                           "n"
-                                                                           "e",
-                                                                           camera
-                                                                               ->near_plane) else PARSE_FLOAT ("far-plane",
-                                                                                                               camera
-                                                                                                                   ->far_plane) else PARSE_VEC3 ("background-color",
-                                                                                                                                                 camera
-                                                                                                                                                     ->background_color) else PARSE_BOOL ("active",
-                                                                                                                                                                                          camera
-                                                                                                                                                                                              ->is_active)
+                      ->far_plane) else PARSE_VEC3 ("background-color",
+                                                    camera
+                                                        ->background_color) else PARSE_BOOL ("active",
+                                                                                             camera
+                                                                                                 ->is_active)
             }
           current = scheme_cdr_wrapper (state, current);
         }
+    }
+  else if (strcmp (component_name, "transform") == 0)
+    {
+      apply_transform_component_override (
+          state, sexp, (transform_component_t *)target_component);
     }
 }
 
@@ -559,6 +650,269 @@ parse_lighting_component (scheme_state_t *state, pointer sexp,
                                                                                                                                    ->enabled)
         }
       current = scheme_cdr_wrapper (state, current);
+    }
+
+  return RESULT_SUCCESS;
+}
+
+result_t
+parse_transform_component (scheme_state_t *state, pointer sexp,
+                           transform_component_t *out_component)
+{
+  if (!state || !sexp || !out_component)
+    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
+
+  memset (out_component, 0, sizeof (*out_component));
+  out_component->transform.position = (vec3_t){ 0.0f, 0.0f, 0.0f, 0.0f };
+  out_component->transform.rotation = (vec4_t){ 0.0f, 0.0f, 0.0f, 1.0f };
+  out_component->transform.scale = (vec3_t){ 1.0f, 1.0f, 1.0f, 0.0f };
+  out_component->dirty = false;
+
+  pointer current = component_fields_cursor (state, sexp);
+
+  while (scheme_is_pair_wrapper (state, current))
+    {
+      pointer field = scheme_car_wrapper (state, current);
+      if (!scheme_is_pair_wrapper (state, field))
+        {
+          current = scheme_cdr_wrapper (state, current);
+          continue;
+        }
+
+      GET_FIELD_NAME (field)
+
+      if (strcmp (field_name, "position") == 0)
+        {
+          vec3_t position = { 0.0f, 0.0f, 0.0f, 0.0f };
+          pointer value = scheme_cdr_wrapper (state, field);
+          scheme_parse_vec3 (state, value, &position);
+          transform_set_position (out_component, position);
+        }
+      else if (strcmp (field_name, "rotation") == 0)
+        {
+          vec4_t rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+          pointer value = scheme_cdr_wrapper (state, field);
+          scheme_parse_vec4 (state, value, &rotation);
+          transform_set_rotation (out_component, rotation);
+        }
+      else if (strcmp (field_name, "rotation-euler") == 0)
+        {
+          vec3_t euler = { 0.0f, 0.0f, 0.0f, 0.0f };
+          pointer value = scheme_cdr_wrapper (state, field);
+          scheme_parse_vec3 (state, value, &euler);
+          vec4_t quat
+              = transform_quaternion_from_euler (euler.x, euler.y, euler.z);
+          transform_set_rotation (out_component, quat);
+        }
+      else if (strcmp (field_name, "scale") == 0)
+        {
+          pointer value = scheme_cdr_wrapper (state, field);
+          scheme_parse_vec3 (state, value, &out_component->transform.scale);
+          out_component->transform.scale._padding = 0.0f;
+        }
+      else
+        PARSE_BOOL ("dirty", out_component->dirty)
+
+      current = scheme_cdr_wrapper (state, current);
+    }
+
+  return RESULT_SUCCESS;
+}
+
+result_t
+parse_player_component (scheme_state_t *state, pointer sexp,
+                        player_component_t *out_component)
+{
+  if (!state || !sexp || !out_component)
+    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
+
+  memset (out_component, 0, sizeof (*out_component));
+  out_component->camera_entity = INVALID_ENTITY;
+  out_component->active = true;
+
+  pointer current = component_fields_cursor (state, sexp);
+
+  while (scheme_is_pair_wrapper (state, current))
+    {
+      pointer field = scheme_car_wrapper (state, current);
+      if (!scheme_is_pair_wrapper (state, field))
+        {
+          current = scheme_cdr_wrapper (state, current);
+          continue;
+        }
+
+      GET_FIELD_NAME (field)
+
+      PARSE_BOOL ("active", out_component->active)
+      else if (strcmp (field_name, "camera-entity") == 0)
+      {
+        pointer value = scheme_cadr_wrapper (state, field);
+        if (scheme_is_number_wrapper (state, value))
+          out_component->camera_entity
+              = (entity_id_t)scheme_number_wrapper (state, value);
+      }
+
+      current = scheme_cdr_wrapper (state, current);
+    }
+
+  return RESULT_SUCCESS;
+}
+
+result_t
+parse_player_collider_component (scheme_state_t *state, pointer sexp,
+                                 player_collider_component_t *out_component)
+{
+  if (!state || !sexp || !out_component)
+    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
+
+  memset (out_component, 0, sizeof (*out_component));
+  out_component->radius = 0.35f;
+  out_component->height = 1.8f;
+  out_component->skin_width = 0.05f;
+  out_component->camera_height = 1.7f;
+  out_component->surface_normal = (vec3_t){ 0.0f, 1.0f, 0.0f, 0.0f };
+  out_component->grounded = true;
+
+  vec3_t parsed_offset = { 0.0f, 0.0f, 0.0f, 0.0f };
+  bool has_custom_offset = false;
+
+  pointer current = component_fields_cursor (state, sexp);
+
+  while (scheme_is_pair_wrapper (state, current))
+    {
+      pointer field = scheme_car_wrapper (state, current);
+      if (!scheme_is_pair_wrapper (state, field))
+        {
+          current = scheme_cdr_wrapper (state, current);
+          continue;
+        }
+
+      GET_FIELD_NAME (field)
+
+      if (strcmp (field_name, "radius") == 0)
+        {
+          pointer value = scheme_cadr_wrapper (state, field);
+          scheme_parse_float (state, value, &out_component->radius);
+        }
+      else if (strcmp (field_name, "height") == 0)
+        {
+          pointer value = scheme_cadr_wrapper (state, field);
+          scheme_parse_float (state, value, &out_component->height);
+        }
+      else if (strcmp (field_name, "skin-width") == 0)
+        {
+          pointer value = scheme_cadr_wrapper (state, field);
+          scheme_parse_float (state, value, &out_component->skin_width);
+        }
+      else if (strcmp (field_name, "camera-height") == 0)
+        {
+          pointer value = scheme_cadr_wrapper (state, field);
+          scheme_parse_float (state, value, &out_component->camera_height);
+        }
+      else if (strcmp (field_name, "offset") == 0)
+        {
+          pointer value = scheme_cdr_wrapper (state, field);
+          scheme_parse_vec3 (state, value, &parsed_offset);
+          has_custom_offset = true;
+        }
+      else if (strcmp (field_name, "surface-normal") == 0)
+        {
+          pointer value = scheme_cdr_wrapper (state, field);
+          scheme_parse_vec3 (state, value, &out_component->surface_normal);
+        }
+      else
+        PARSE_BOOL ("grounded", out_component->grounded)
+
+      current = scheme_cdr_wrapper (state, current);
+    }
+
+  player_collider_recalculate_offset (out_component);
+  if (has_custom_offset)
+    {
+      out_component->offset.x += parsed_offset.x;
+      out_component->offset.y += parsed_offset.y;
+      out_component->offset.z += parsed_offset.z;
+      out_component->offset._padding = 0.0f;
+    }
+
+  return RESULT_SUCCESS;
+}
+
+result_t
+parse_player_movement_controls_component (
+    scheme_state_t *state, pointer sexp,
+    player_movement_controls_component_t *out_component)
+{
+  if (!state || !sexp || !out_component)
+    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
+
+  memset (out_component, 0, sizeof (*out_component));
+  out_component->enabled = true;
+  out_component->auto_emit = true;
+  out_component->look_blend = 1.0f;
+
+  pointer current = component_fields_cursor (state, sexp);
+
+  while (scheme_is_pair_wrapper (state, current))
+    {
+      pointer field = scheme_car_wrapper (state, current);
+      if (!scheme_is_pair_wrapper (state, field))
+        {
+          current = scheme_cdr_wrapper (state, current);
+          continue;
+        }
+
+      GET_FIELD_NAME (field)
+
+      PARSE_BOOL ("enabled", out_component->enabled)
+      else PARSE_BOOL (
+          "auto-emit",
+          out_component->auto_emit) else PARSE_FLOAT ("look-blend",
+                                                      out_component
+                                                          ->look_blend)
+
+          current
+          = scheme_cdr_wrapper (state, current);
+    }
+
+  return RESULT_SUCCESS;
+}
+
+result_t
+parse_player_movement_component (scheme_state_t *state, pointer sexp,
+                                 player_movement_component_t *out_component)
+{
+  if (!state || !sexp || !out_component)
+    return RESULT_ERROR (RESULT_ERROR_INVALID_PARAMETER, "Invalid arguments");
+
+  memset (out_component, 0, sizeof (*out_component));
+  out_component->velocity = (vec3_t){ 0.0f, 0.0f, 0.0f, 0.0f };
+  out_component->input_direction = (vec3_t){ 0.0f, 0.0f, 0.0f, 0.0f };
+  out_component->grounded = true;
+  out_component->jump_requested = false;
+  out_component->sprinting = false;
+  out_component->input_received = false;
+  out_component->move_listener = 0;
+  out_component->event_system = NULL;
+
+  pointer current = component_fields_cursor (state, sexp);
+
+  while (scheme_is_pair_wrapper (state, current))
+    {
+      pointer field = scheme_car_wrapper (state, current);
+      if (!scheme_is_pair_wrapper (state, field))
+        {
+          current = scheme_cdr_wrapper (state, current);
+          continue;
+        }
+
+      GET_FIELD_NAME (field)
+
+      PARSE_VEC3 ("velocity", out_component->velocity)
+      else PARSE_BOOL ("grounded", out_component->grounded)
+
+          current
+          = scheme_cdr_wrapper (state, current);
     }
 
   return RESULT_SUCCESS;

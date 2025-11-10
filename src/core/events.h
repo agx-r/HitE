@@ -17,6 +17,7 @@ typedef enum
   EVENT_MOUSE_BUTTON,
   EVENT_ENTITY_DESTROYED,
   EVENT_CUSTOM_START = 100,
+  EVENT_PLAYER_MOVE_INPUT = EVENT_CUSTOM_START,
 } event_type_t;
 
 typedef struct
@@ -46,6 +47,14 @@ typedef struct
       float x, y;
       int button;
     } mouse;
+
+    struct
+    {
+      vec3_t direction;
+      bool jump;
+      bool sprint;
+      float _padding;
+    } player_move;
 
     uint8_t custom[64];
   } data;

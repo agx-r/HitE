@@ -5,48 +5,30 @@
 float
 citadel_de (vec3 p, float time, out vec3 orbit_color)
 {
-  float scale = 1.4741;
-  float angle1 = 0.0;
-  float angle2 = 0.0;
+  const float scale = 1.4721;
+  const vec3 shift = vec3 (-10.23, 3.35, -2);
+  const vec3 base_color = vec3 (0.08, 0.03, 0.03);
 
-  float a = -1.9;
-  float b = 11;
-  float c = 1.8;
-  float d = 7.5;
-
-  float shift_z = -2 - (sin (time * 0.02));
-  vec3 shift = vec3 (-10.25, 3.37, shift_z);
-
-  vec3 color = vec3 (0.08, 0.03, 0.03);
-  vec2 a1 = vec2 (sin (angle1), cos (angle1));
-  vec2 a2 = vec2 (sin (angle2), cos (angle2));
-  mat2 rmZ = mat2 (a1.y, a1.x, -a1.x, a1.y);
-  mat2 rmX = mat2 (a2.y, a2.x, -a2.x, a2.y);
   float s = 1.0;
   vec3 color_accum = vec3 (0.0);
 
-  for (int i = 0; i < 11; ++i)
+  for (int i = 0; i < 13; ++i)
     {
       p = abs (p);
-      p.xy *= rmZ;
       p.xy += min (p.x - p.y, 0.0) * vec2 (-1.0, 1.0);
       p.xz += min (p.x - p.z, 0.0) * vec2 (-1.0, 1.0);
       p.yz += min (p.y - p.z, 0.0) * vec2 (-1.0, 1.0);
-      p.yz *= rmX;
-      p *= scale;
+
+      p = p * scale + shift;
       s *= scale;
 
-      p += shift;
-
       color_accum
-          = max (color_accum, abs (p) * color * (0.5 + 0.05 * float (i)));
+          = max (color_accum, abs (p) * base_color * (0.5 + 0.05 * float (i)));
     }
 
   orbit_color = color_accum;
-  vec3 dvec = abs (p) - vec3 (6.0);
-  return (min (max (dvec.x, max (dvec.y, dvec.z)), 0.0)
-          + length (max (dvec, 0.0)))
-         / s;
+  vec3 d = abs (p) - vec3 (6.0);
+  return (min (max (d.x, max (d.y, d.z)), 0.0) + length (max (d, 0.0))) / s;
 }
 
 float

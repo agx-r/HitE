@@ -54,10 +54,12 @@ typedef struct
   uint32_t gpu_index;
 } ALIGN_64 shape_component_t;
 
-vec3_t transform_point (vec3_t point, const transform_t *transform);
-vec3_t transform_point_inverse (vec3_t point, const transform_t *transform);
+vec3_t shape_transform_point (vec3_t point, const transform_t *transform);
+vec3_t shape_transform_point_inverse (vec3_t point,
+                                      const transform_t *transform);
 
-float shape_evaluate_sdf (const shape_component_t *shape, vec3_t world_point);
+float shape_evaluate_sdf (const shape_component_t *shape, vec3_t world_point,
+                          float time_seconds);
 
 result_t shape_component_start (ecs_world_t *world, entity_id_t entity,
                                 void *component_data);

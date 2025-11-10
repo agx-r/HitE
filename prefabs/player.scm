@@ -1,24 +1,23 @@
 (prefab
-  (name "developer_camera")
-  (description "Camera entity with movement, logger and rotation components")
-  
+  (name "player")
+  (description "Controllable player pawn with camera-driven movement and collider")
+
   (component "transform"
-    (position 0 0 0)
-    (rotation-euler -0.3 -3.14159 0))
+    (position 0 3 0)
+    (rotation-euler 0 0 0))
+
+  (component "player"
+    (active #t))
 
   (component "camera"
     (fov 90.0)
-    (near-plane 2)
+    (near-plane 0.1)
     (background-color 0.33 0.23 0.12)
     (far-plane 1000.0)
     (active #t))
-  
-  (component "camera_movement"
-    (move-speed 8.0)
-    (enabled #t))
 
-  ; (component "developer_overlay")
-  
+  (component "developer_overlay")
+
   (component "camera_rotation"
     (yaw -3.14159)
     (pitch -0.3)
@@ -36,4 +35,16 @@
     (shadow-bias 0.1)
     (shadow-softness 1)
     (shadow-steps 48)
-    (enabled #t)))
+    (enabled #t))
+
+  (component "player_collider"
+    (radius 2.0)
+    (height 4.2)
+    (skin-width 0.04)
+    (camera-height 4))
+
+  (component "player_movement_controls"
+    (enabled #t)
+    (auto-emit #t))
+
+  (component "player_movement"))

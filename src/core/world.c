@@ -205,8 +205,56 @@ world_instantiate_templates (ecs_world_t *world,
                 }
               else
                 {
-                  LOG_WARNING ("World", "No component data for '%s'",
-                               comp_name);
+                  if (tmpl->components[j].sexp)
+                    {
+                      scheme_state_t *world_state
+                          = world_loader_get_scheme_state ();
+                      if (world_state)
+                        {
+                          void *parsed_data = NULL;
+                          size_t parsed_size = 0;
+                          result_t res = world_loader_parse_component (
+                              world_state, tmpl->components[j].sexp,
+                              &parsed_data, &parsed_size);
+                          if (res.code == RESULT_OK && parsed_data
+                              && parsed_size > 0)
+                            {
+                              result_t add_res = ecs_add_component (
+                                  world, entity, comp_id, parsed_data);
+                              if (add_res.code != RESULT_OK)
+                                {
+                                  LOG_WARNING ("World",
+                                               "Failed to add component '%s' "
+                                               "from override: %s",
+                                               comp_name, add_res.message);
+                                }
+                              free (parsed_data);
+                            }
+                          else
+                            {
+                              LOG_WARNING ("World",
+                                           "Failed to parse component '%s' "
+                                           "for override: %s",
+                                           comp_name,
+                                           res.message ? res.message
+                                                       : "unknown error");
+                              if (parsed_data)
+                                free (parsed_data);
+                            }
+                        }
+                      else
+                        {
+                          LOG_WARNING ("World",
+                                       "Failed to get world scheme state for "
+                                       "component '%s'",
+                                       comp_name);
+                        }
+                    }
+                  else
+                    {
+                      LOG_WARNING ("World", "No component data for '%s'",
+                                   comp_name);
+                    }
                 }
             }
         }
